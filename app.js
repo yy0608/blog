@@ -1,23 +1,25 @@
 var express = require('express')
-var swig = require('swig')
 var bodyParser = require('body-parser')
-
 var mongoose = require('mongoose')
+var cookies = require('cookies')
+
+// 使用全局的Promise，需要高版本node支持Promise，也可使用bluebird
+mongoose.Promise = global.Promise
 
 var app = express()
 
-app.engine('html', swig.renderFile)
-
-app.set('views', './views')
-app.set('view engine', 'html')
-
-swig.setDefaults({ cache: false }) // 模板渲染不要缓存，避免开发不改变问题
-
-app.use('/public', express.static(__dirname + '/public'))
-
+// post请求数据的处理，在req.body
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
+// 设置和获取cookies
+app.use(function (req, res, next) {
+  req.cookies = new cookies(req, res)
+  console.log(req.cookies.get('OUTFOX_SEARCH_USER_ID_NCOO'))
+  next()
+})
+
+// 解决跨域
 app.all('*', function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
@@ -27,10 +29,12 @@ app.all('*', function(req, res, next) {
   else next();
 });
 
+// 设置路由组
 app.use('/', require('./routers/main.js'))
 app.use('/api', require('./routers/api.js'))
 app.use('/admin', require('./routers/admin.js'))
 
+// 连接数据库
 mongoose.connect('mongodb://localhost:27017/laogao', {
   useMongoClient: true
 }, function(err) {
@@ -39,8 +43,11 @@ mongoose.connect('mongodb://localhost:27017/laogao', {
   } else {
     console.log('数据库连接成功')
   }
+}).catch(err => {
+  console.log(err.message)
 })
 
+// 监听端口，开启服务
 app.listen(3000, function(err) {
   if (err) {
     console.log(err)
