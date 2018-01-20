@@ -65,6 +65,7 @@ router.post('/user/register', function (req, res, next) {
 })
 
 router.post('/user/login', function (req, res, next) {
+  console.log(req.headers.cookie)
   var resBody = req.body
   var username = resBody.username
   var password = resBody.password
@@ -99,7 +100,8 @@ router.post('/user/login', function (req, res, next) {
         _id: data._id,
         username: data.username
       }
-      req.cookies.set('userInfo', JSON.stringify(responseData.user_info))
+      res.cookie('userInfo', responseData.user_info)
+      // req.cookies.set('userInfo', JSON.stringify(responseData.user_info))
       res.json(responseData)
       return
     }

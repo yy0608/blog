@@ -1,7 +1,8 @@
 var express = require('express')
 var bodyParser = require('body-parser')
 var mongoose = require('mongoose')
-var cookies = require('cookies')
+// var cookies = require('cookies')
+var cookieParser = require('cookie-parser')
 
 // 使用全局的Promise，需要高版本node支持Promise，也可使用bluebird
 mongoose.Promise = global.Promise
@@ -12,18 +13,22 @@ var app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
+// cookie的解析
+app.use(cookieParser())
+
 // 设置和获取cookies
 app.use(function (req, res, next) {
-  req.cookies = new cookies(req, res)
-  console.log(req.cookies.get('OUTFOX_SEARCH_USER_ID_NCOO'))
+  // req.cookies = new cookies(req, res)
+  // console.log(req.cookies.get('OUTFOX_SEARCH_USER_ID_NCOO'))
   next()
 })
 
 // 解决跨域
 app.all('*', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Origin", "http://localhost:8080");
   res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
   res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Credentials", true)
   res.header("X-Powered-By", ' 3.2.1')
   if (req.method == "OPTIONS") res.sendStatus(200); /*让options请求快速返回*/
   else next();
