@@ -24,13 +24,13 @@ router.post('/user/register', function (req, res, next) {
     res.json(responseData)
     return
   }
-  if (username && !username.trim()) {
+  if (!username || !username.trim()) {
     responseData.code = 1
     responseData.msg = '用户名不能为空'
     res.json(responseData)
     return
   }
-  if (password && !password.trim()) {
+  if (!password && !password.trim()) {
     responseData.code = 2
     responseData.msg = '密码不能为空'
     res.json(responseData)
@@ -58,30 +58,29 @@ router.post('/user/register', function (req, res, next) {
     return
   }).catch(err => {
     responseData.code = 9
-    responseData.msg = '数据库查找出错'
+    responseData.msg = '异常错误，具体请查看error信息'
     res.json(responseData)
     return
   })
 })
 
 router.post('/user/login', function (req, res, next) {
-  console.log(req.headers.cookie)
   var resBody = req.body
   var username = resBody.username
   var password = resBody.password
-  if (!resBody || !username || !password) {
+  if (!resBody) {
     responseData.code = 9
     responseData.msg = '请求数据出错'
     res.json(responseData)
     return
   }
-  if (username && !username.trim()) {
+  if (!username || !username.trim()) {
     responseData.code = 1
     responseData.msg = '用户名不能为空'
     res.json(responseData)
     return
   }
-  if (password && !password.trim()) {
+  if (!password || !password.trim()) {
     responseData.code = 2
     responseData.msg = '密码不能为空'
     res.json(responseData)
@@ -96,18 +95,62 @@ router.post('/user/login', function (req, res, next) {
       return
     } else {
       responseData.msg = '登录成功'
-      responseData.user_info = {
-        _id: data._id,
-        username: data.username
+      responseData.user_info = data
+      try {
+        req.cookies.set('_id', JSON.stringify(responseData.user_info._id), {
+          httpOnly: false,
+          signed: true
+        })
+      } catch (e) {
+        console.log(e)
       }
-      res.cookie('userInfo', responseData.user_info)
-      // req.cookies.set('userInfo', JSON.stringify(responseData.user_info))
       res.json(responseData)
       return
     }
   }).catch(err => {
     responseData.code = 9
-    responseData.msg = '数据库查找出错'
+    responseData.msg = '异常错误，具体请查看error信息'
+    responseData.error = err
+    res.json(responseData)
+    return
+  })
+})
+
+router.post('/user/getUserInfoById', function (req, res, next) {
+  var _id = req.cookies.get('_id', { signed: true })
+  try {
+    _id = JSON.parse(_id)
+  } catch (e) {
+    _id = _id
+  }
+  if (!_id) {
+    responseData.code = 1
+    responseData.msg = '_id不存在'
+    req.cookies.set('_id', null)
+    res.json(responseData)
+    return
+  }
+  User.findOne({
+    _id: _id
+  }).then(data => {
+    if (!data) {
+      responseData.code = 2
+      responseData.msg = '用户不存在'
+      res.json(responseData)
+      return
+    } else {
+      responseData.msg = '获取用户信息成功'
+      responseData.user_info = data
+      req.cookies.set('_id', data._id, {
+        httpOnly: false,
+        signed: true
+      })
+      res.json(responseData)
+      return
+    }
+  }).catch(err => {
+    responseData.code = 9
+    responseData.msg = '异常错误，具体请查看error信息'
     responseData.error = err
     res.json(responseData)
     return

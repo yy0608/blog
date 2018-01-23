@@ -1,8 +1,7 @@
 var express = require('express')
 var bodyParser = require('body-parser')
 var mongoose = require('mongoose')
-// var cookies = require('cookies')
-var cookieParser = require('cookie-parser')
+var cookies = require('cookies')
 
 // 使用全局的Promise，需要高版本node支持Promise，也可使用bluebird
 mongoose.Promise = global.Promise
@@ -13,13 +12,11 @@ var app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
-// cookie的解析
-app.use(cookieParser())
-
 // 设置和获取cookies
 app.use(function (req, res, next) {
-  // req.cookies = new cookies(req, res)
-  // console.log(req.cookies.get('OUTFOX_SEARCH_USER_ID_NCOO'))
+  req.cookies = new cookies(req, res, {
+    keys: [ 'youyi' ]
+  })
   next()
 })
 
