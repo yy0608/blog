@@ -46,18 +46,43 @@ router.use(function (req, res, next) { // 有权限才能拿到后台数据
   })
 })
 
-router.get('/user_list', function (req, res, next) {
-  var page = isNaN(parseInt(req.query.page)) ? 1 : parseInt(req.query.page)
-  var limit = isNaN(parseInt(req.query.limit)) ? 2 : parseInt(req.query.limit)
+router.get('/user_list', function (req, res, next) { // 注意此处获取用户条数和isNaN方法
+  var parsePage = parseInt(req.query.page)
+  var parseLimit = parseInt(req.query.limit)
+  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? 2 : parseLimit
   var skip = (page - 1) * limit
-  User.find().limit(limit).skip(skip).then(data => {
-    responseData.msg = '获取用户列表成功'
-    responseData.user_list = data
-    res.json(responseData)
-    return
+  User.count().then(count => {
+    // User.find({}, null, {
+    //   limit,
+    //   skip
+    // }).then(data => {
+    //   responseData.msg = '获取用户列表成功'
+    //   responseData.user_list = data
+    //   responseData.total_count = count
+    //   res.json(responseData)
+    //   return
+    // }).catch(err => {
+    //   responseData.code = 9
+    //   responseData.msg = '查询用户列表出错'
+    //   responseData.message = err
+    //   res.json(responseData)
+    // })
+    User.find().limit(limit).skip(skip).then(data => {
+      responseData.msg = '获取用户列表成功'
+      responseData.user_list = data
+      responseData.total_count = count
+      res.json(responseData)
+      return
+    }).catch(err => {
+      responseData.code = 9
+      responseData.msg = '查询用户列表出错'
+      responseData.message = err
+      res.json(responseData)
+    })
   }).catch(err => {
-    responseData.code = 9
-    responseData.msg = '查询数据库出错'
+    responseData.code = 8
+    responseData.msg = '查询用户总数出错'
     responseData.message = err
     res.json(responseData)
   })
@@ -75,6 +100,10 @@ router.post('/user_delete', function (req, res, next) {
     responseData.msg = '删除用户失败'
     responseData.message = err
     res.json(responseData)
+  })
+
+  router.get('/category', function (req, res) {
+    //
   })
 })
 
