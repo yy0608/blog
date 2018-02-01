@@ -15,10 +15,10 @@ router.use(function (req, res, next) {
 })
 
 router.post('/user/register', function (req, res, next) {
-  var resBody = req.body
-  var username = resBody.username
-  var password = resBody.password
-  if (!resBody) {
+  var reqBody = req.body
+  var username = reqBody.username
+  var password = reqBody.password
+  if (!reqBody) {
     responseData.code = 9
     responseData.msg = '请求数据处理出错'
     res.json(responseData)
@@ -65,10 +65,10 @@ router.post('/user/register', function (req, res, next) {
 })
 
 router.post('/user/login', function (req, res, next) {
-  var resBody = req.body
-  var username = resBody.username
-  var password = resBody.password
-  if (!resBody) {
+  var reqBody = req.body
+  var username = reqBody.username
+  var password = reqBody.password
+  if (!reqBody) {
     responseData.code = 9
     responseData.msg = '请求数据出错'
     res.json(responseData)

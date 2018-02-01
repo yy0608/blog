@@ -1,5 +1,6 @@
 var express = require('express')
 var User = require('../models/User.js')
+var Category = require('../models/Category.js')
 var router = express.Router()
 
 var responseData
@@ -46,9 +47,10 @@ router.use(function (req, res, next) { // 有权限才能拿到后台数据
   })
 })
 
-router.get('/user_list', function (req, res, next) { // 注意此处获取用户条数和isNaN方法
-  var parsePage = parseInt(req.query.page)
-  var parseLimit = parseInt(req.query.limit)
+router.get('/user/list', function (req, res, next) { // 注意此处获取用户条数和isNaN方法
+  var reqQuery = req.query
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
   var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
   var limit = isNaN(parseLimit) ? 2 : parseLimit
   var skip = (page - 1) * limit
@@ -68,27 +70,30 @@ router.get('/user_list', function (req, res, next) { // 注意此处获取用户
     //   responseData.message = err
     //   res.json(responseData)
     // })
-    User.find().limit(limit).skip(skip).then(data => {
-      responseData.msg = '获取用户列表成功'
-      responseData.user_list = data
-      responseData.total_count = count
-      res.json(responseData)
-      return
-    }).catch(err => {
-      responseData.code = 9
-      responseData.msg = '查询用户列表出错'
+    User.find().limit(limit).skip(skip)
+      .then(data => {
+        responseData.msg = '获取用户列表成功'
+        responseData.user_list = data
+        responseData.total_count = count
+        res.json(responseData)
+        return
+      })
+      .catch(err => {
+        responseData.code = 9
+        responseData.msg = '查询用户列表出错'
+        responseData.message = err
+        res.json(responseData)
+      })
+    })
+    .catch(err => {
+      responseData.code = 8
+      responseData.msg = '查询用户总数出错'
       responseData.message = err
       res.json(responseData)
     })
-  }).catch(err => {
-    responseData.code = 8
-    responseData.msg = '查询用户总数出错'
-    responseData.message = err
-    res.json(responseData)
-  })
 })
 
-router.post('/user_delete', function (req, res, next) {
+router.post('/user/delete', function (req, res, next) {
   var _id = req.body._id
   User.remove({
     _id: _id
@@ -101,10 +106,56 @@ router.post('/user_delete', function (req, res, next) {
     responseData.message = err
     res.json(responseData)
   })
+})
 
-  router.get('/category', function (req, res) {
-    //
+router.get('/category/list', function (req, res) {
+  var reqQuery = req.query
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
+  var page = isNaN(parsePage) || parsePage <=0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? 2 : parseLimit
+  var skip = (page - 1) * limit
+  Category.count()
+    .then(count => {
+      Category.find().limit(limit).skip(skip)
+        .then(data => {
+          responseData.msg = '获取分类列表成功'
+          responseData.total_count = count
+          responseData.category_list = data
+          res.json(responseData)
+        })
+        .catch(err => {
+          responseData.code = 2
+          responseData.msg = '获取分类列表失败'
+          responseData.message = err
+          res.json(responseData)
+        })
+    })
+    .catch(err => {
+      responseData.code = 8
+      responseData.msg = '查询分类总数出错'
+      responseData.message = err
+      res.json(responseData)
+    })
+})
+
+router.post('/category/add', function (req, res) {
+  var reqBody = req.body
+  var category = new Category({
+    name: reqBody.name,
+    desc: reqBody.desc
   })
+  category.save()
+    .then(data => {
+      responseData.msg = '保存分类成功'
+      res.json(responseData)
+    })
+    .catch(err => {
+      responseData.code = 2
+      responseData.msg = '保存分类失败'
+      responseData.message = err
+      res.json(responseData)
+    })
 })
 
 module.exports = router
