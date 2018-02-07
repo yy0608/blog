@@ -3,10 +3,19 @@ var mongoose = require('mongoose')
 module.exports = new mongoose.Schema({
   name: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   desc: {
     type: String,
-    unique: false
+    required: false
+  },
+  created_ts: {
+    type: Number,
+    default: Date.now()
+  },
+  updated_ts: {
+    type: Number,
+    default: 0
   }
 })

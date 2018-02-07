@@ -5,7 +5,6 @@ var mongoose = require('mongoose')
 mongoose.Promise = global.Promise
 
 var responseData
-
 router.use(function (req, res, next) {
   responseData = {
     code: 0,
@@ -45,7 +44,8 @@ router.post('/user/register', function (req, res, next) {
     } // 没有存在用户名
     var user = new User({
       username: username,
-      password: password
+      password: password,
+      created_ts: Date.now()
     })
     return user.save()
   }).then(data => {

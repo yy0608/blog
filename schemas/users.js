@@ -14,5 +14,9 @@ module.exports = new Schema({
   isAdmin: {
     type: Boolean,
     default: false
+  },
+  created_ts: {
+    type: Number,
+    default: Date.now()
   }
 })
