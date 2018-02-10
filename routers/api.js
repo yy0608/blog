@@ -116,6 +116,15 @@ router.post('/user/login', function (req, res, next) {
   })
 })
 
+router.post('/user/logout', function (req, res, next) {
+  req.cookies.set('_id', null, {
+    httpOnly: false,
+    signed: true
+  })
+  responseData.msg = '退出成功'
+  res.json(responseData)
+})
+
 router.post('/user/getUserInfoById', function (req, res, next) {
   var _id = req.cookies.get('_id', { signed: true })
   try {
@@ -132,6 +141,10 @@ router.post('/user/getUserInfoById', function (req, res, next) {
   }
   User.findOne({
     _id: _id
+  }, {
+    created_ts: 0,
+    password: 0,
+    __v: 0
   }).then(data => {
     if (!data) {
       responseData.code = 2

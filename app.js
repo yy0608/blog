@@ -22,11 +22,14 @@ app.use(function (req, res, next) {
 
 // 解决跨域
 app.all('*', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://localhost:8080");
-  res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
-  res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Credentials", true)
-  res.header("X-Powered-By", ' 3.2.1')
+  var originArray = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://forum.jingia.com', 'https://forum.jingia.com']
+  if (originArray.indexOf(req.headers.origin) !== -1) {
+    res.header("Access-Control-Allow-Origin", req.headers.origin);
+    res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
+    res.header("Access-Control-Allow-Methods", "PUT,POST,GET,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Credentials", true)
+    res.header("X-Powered-By", ' 3.2.1')
+  }
   if (req.method == "OPTIONS") res.sendStatus(200); /*让options请求快速返回*/
   else next();
 });
@@ -37,7 +40,7 @@ app.use('/api', require('./routers/api.js'))
 app.use('/admin', require('./routers/admin.js'))
 
 // 连接数据库
-mongoose.connect('mongodb://localhost:27017/laogao', {
+mongoose.connect('mongodb://youyi:yy0608@localhost:27017/laogao', {
   useMongoClient: true
 }, function(err) {
   if (err) {
