@@ -23,33 +23,40 @@ router.post('/login', function (req, res, next) {
 					errmsg: err
 				})
 			} else {
-				try {
-					var sessionInfo = JSON.parse(v)
-					if (sessionInfo.openid) {
-						res.json({
-							success: true,
-							msg: '登录态有效'
-						})
-						// 可以执行其他操作
-					} else {
+				if (v) {
+					try {
+						var sessionInfo = JSON.parse(v)
+						if (sessionInfo.openid) {
+							res.json({
+								success: true,
+								msg: '登录态有效'
+							})
+							// 可以执行其他操作
+						} else {
+							res.json({
+								success: false,
+								msg: '登录态失效'
+							})
+							// 小程序上重新登录
+						}
+					} catch (err) {
 						res.json({
 							success: false,
-							msg: '登录态失效'
+							msg: '解析session出错',
+							errmsg: err
 						})
-						// 小程序上重新登录
 					}
-				} catch (err) {
-					res.json({
-						success: false,
-						msg: '解析session出错',
-						errmsg: err
-					})
+				} else {
+					getSessionThrMp(res, code)
 				}
 			}
 		})
-		return
+	} else {
+		getSessionThrMp(res, code)
 	}
+});
 
+function getSessionThrMp (res, code) {
 	axios({
 		url: 'https://api.weixin.qq.com/sns/jscode2session',
 		method: 'get',
@@ -96,6 +103,6 @@ router.post('/login', function (req, res, next) {
 				err: err
 			})
 		})
-});
+}
 
 module.exports = router;
