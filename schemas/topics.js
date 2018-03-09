@@ -1,6 +1,6 @@
 var mongoose = require('mongoose')
 
-module.exports = mongoose.Schema({
+module.exports = new mongoose.Schema({
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category'
