@@ -16,13 +16,9 @@ var QcloudSms = require("qcloudsms_js") // 腾讯云短信服务
 
 var utils = require('../../utils.js');
 
-var smsConfig = {
-  smsSign: '饭千金', // 签名
-  appid: 1400070556,
-  appkey: '32cf6a39ef9c100f8d1b68d835b1e995',
-  templateId: 90192, // 模板ID
-  smsType: 0 // Enum{0: 普通短信, 1: 营销短信}
-}
+var config = require('./config.js');
+
+var smsConfig = config.smsConfig
 
 var ssender = undefined
 
@@ -74,7 +70,7 @@ router.post('/login', function (req, res, next) {
   captcha.verifyToken(dxToken)
     .then((response) => {
       var hash = crypto.createHash('md5');
-      hash.update('开门大吉--' + password + '--万事如意');
+      hash.update(config.passwordKey.left + password + config.passwordKey.right);
       EmployUser.findOne({
         username: username,
         password: hash.digest('hex')
@@ -143,7 +139,7 @@ router.post('/add', function (req, res, next) {
         })
       } else {
         var hash = crypto.createHash('md5');
-        hash.update('开门大吉--' + password + '--万事如意');
+        hash.update(config.passwordKey.left + password + config.passwordKey.right);
         var user = new EmployUser({
           username: username,
           name: name,
@@ -224,11 +220,21 @@ router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时�
     return
   }
 
+  var code = Math.random().toString().substr(2, 6)
+  // console.log(code)
+
+  // global.redisClient.set(phone, code, function (err, res) {
+  //   global.redisClient.expire(phone, 120)
+  // })
+  // res.json({
+  //   success: true,
+  //   msg: '短信发送成功'
+  // })
+  // return;
+
   var qcloudsms = QcloudSms(smsConfig.appid, smsConfig.appkey)
   var code = Math.random().toString().substr(2, 6)
   ssender = ssender || qcloudsms.SmsSingleSender() // 单发短信
-  global.redisClient.set(phone, code)
-  global.redisClient.expire(phone, 120)
   // ssender = ssender || qcloudsms.SmsMultiSender() // 群发短信
   ssender.send(smsConfig.smsType, 86, phone, code + " 为您的登录验证码，请于 2 分钟内填写。如非本人操作，请忽略本短信。", "", "", function (err, response, resData) {
     if (err) {
@@ -245,8 +251,9 @@ router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时�
           err: resData
         })
       } else {
-        global.redisClient.set(phone, code)
-        global.redisClient.expire(phone, 300)
+        global.redisClient.set(phone, code, function (err, res) {
+          global.redisClient.expire(phone, 120)
+        })
         res.json({
           success: true,
           msg: '短信发送成功',
@@ -257,7 +264,7 @@ router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时�
   });
 })
 
-router.post('/merchant_add', function (req, res, next) {
+router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var reqBody = req.body;
   var phone = reqBody.phone && reqBody.phone.trim();
   var manager = reqBody.manager;
@@ -289,6 +296,7 @@ router.post('/merchant_add', function (req, res, next) {
         msg: '短信验证码错误或失效'
       })
     } else {
+      redisClient.del(phone); // 删除
       MerchantUser.findOne({
         phone: phone
       })
@@ -301,7 +309,7 @@ router.post('/merchant_add', function (req, res, next) {
           } else {
             var password = utils.randomWord(true, 40, 43);
             var hash = crypto.createHash('md5');
-            hash.update('开门大吉--' + password + '--万事如意');
+            hash.update(config.passwordKey.left + password + config.passwordKey.right);
             var merchantUser = new MerchantUser({
               phone: phone,
               password: hash.digest('hex'),
@@ -341,6 +349,50 @@ router.post('/merchant_add', function (req, res, next) {
       })
     }
   })
+})
+
+router.get('/merchant_list', function (req, res, next) {
+  var reqQuery = req.query
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
+  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
+  var skip = (page - 1) * limit
+  MerchantUser.count()
+    .then(count => {
+      if (!count) {
+        res.json({
+          success: true,
+          msg: '获取商家列表成功',
+          count: 0,
+          data: []
+        })
+      } else {
+        MerchantUser.find({}, { password: 0 }).limit(limit).skip(skip).sort({ _id: -1 })
+          .then(data => {
+            res.json({
+              success: true,
+              msg: '获取商家列表成功',
+              count: count,
+              data: data
+            })
+          })
+          .catch(err => {
+            res.json({
+              success: false,
+              msg: '获取商家列表失败',
+              err: err
+            })
+          })
+      }
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商家列表总条数失败',
+        err: err
+      })
+    })
 })
 
 module.exports = router
