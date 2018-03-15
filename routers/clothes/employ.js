@@ -264,6 +264,14 @@ router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时�
   });
 })
 
+router.post('/test', function (req, res, next) {
+  console.log(req.body)
+  res.json({
+    success: true,
+    data: req.body
+  })
+})
+
 router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var reqBody = req.body;
   var phone = reqBody.phone && reqBody.phone.trim();
