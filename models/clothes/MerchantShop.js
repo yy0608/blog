@@ -1,4 +1,4 @@
 var mongoose = require('mongoose');
-var merchantUserSchema = require('../../schemas/clothes/merchant_users.js');
+var merchantShopSchema = require('../../schemas/clothes/merchant_shops.js');
 
-module.exports = mongoose.model('MerchantUser', merchantUserSchema);
+module.exports = mongoose.model('MerchantShop', merchantShopSchema);

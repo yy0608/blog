@@ -8,6 +8,7 @@ var RedisStore = require('connect-redis')(session);
 
 var EmployUser = require('../../models/clothes/EmployUser.js');
 var MerchantUser = require('../../models/clothes/MerchantUser.js');
+var MerchantShop = require('../../models/clothes/MerchantShop.js');
 
 var CaptchaSDK = require('dx-captcha-sdk')
 var captcha = new CaptchaSDK('b971bdbee8e1d2780783782d066d0cf8', 'de85519b7bded1dab9a2ad1f4db195a5')
@@ -264,14 +265,6 @@ router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时�
   });
 })
 
-router.post('/test', function (req, res, next) {
-  console.log(req.body)
-  res.json({
-    success: true,
-    data: req.body
-  })
-})
-
 router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var reqBody = req.body;
   var phone = reqBody.phone && reqBody.phone.trim();
@@ -398,6 +391,125 @@ router.get('/merchant_list', function (req, res, next) {
       res.json({
         success: false,
         msg: '获取商家列表总条数失败',
+        err: err
+      })
+    })
+})
+
+router.post('/shop_add', function (req, res, next) {
+  var reqBody = req.body;
+  var location, longitude, longitude
+  if (reqBody.location && typeof(reqBody.location) === 'string') {
+    location = reqBody.location.split(',')
+    longitude = parseFloat(location[0])
+    latitude = parseFloat(location[1])
+  }
+  if (!reqBody.merchant_id || Object.keys(reqBody).length < 9 || isNaN(latitude) || isNaN(longitude)) {
+    res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+    return
+  }
+  reqBody.location = [longitude, latitude]
+  reqBody.create_ts = Date.now()
+  var merchantShop = new MerchantShop(reqBody)
+  merchantShop.save()
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '添加店铺成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '添加店铺失败',
+        err: err
+      })
+    })
+})
+
+router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表，传商家id即该商家下的店铺列表
+  var reqQuery = req.query
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
+  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
+  var skip = (page - 1) * limit
+  var conditions = reqQuery.merchant_id ? { merchant_id: reqQuery.merchant_id } : {}
+  MerchantShop.count()
+    .then(count => {
+      if (!count) {
+        res.json({
+          success: true,
+          msg: '获取店铺列表成功',
+          count: 0,
+          data: []
+        })
+      } else {
+        var populateOptions = reqQuery.merchant_id ? '' : {
+          path: 'merchant_id',
+          select: {
+            password: 0
+          }
+        };
+        MerchantShop.find(conditions).limit(limit).skip(skip).populate(populateOptions).sort({ _id: -1 })
+          .then(data => {
+            res.json({
+              success: true,
+              msg: '获取店铺列表成功',
+              count: count,
+              data: data
+            })
+          })
+          .catch(err => {
+            res.json({
+              success: false,
+              msg: '获取店铺列表出错',
+              err: err
+            })
+          })
+      }
+    })
+})
+
+router.get('/near_shops', function (req, res, next) { // 查询附近的店铺，当前位置必传
+  var reqQuery = req.query;
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
+  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
+  var skip = (page - 1) * limit
+  if (!reqQuery.location || typeof(reqQuery.location) !== 'string') {
+    res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+    return
+  }
+  var maxDistance = reqQuery.max_distance
+  var location, longitude, longitude
+  location = reqQuery.location.split(',')
+  longitude = parseFloat(location[0])
+  latitude = parseFloat(location[1])
+  var nearSphere = [ longitude, latitude ]
+  var locationOptions = maxDistance ? {
+    $nearSphere: nearSphere,
+    $maxDistance: parseFloat(maxDistance) / 6378 // 此处要转换为弧度，6378为地球半径，单位km
+  } : { $nearSphere: nearSphere }
+  MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip)
+    .then(data => {
+      res.json({
+        success: false,
+        msg: '获取附近店铺成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: true,
+        mag: '获取附近店铺失败',
         err: err
       })
     })
