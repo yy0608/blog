@@ -28,7 +28,7 @@ module.exports = new mongoose.Schema({
   email: {
     type: String
   },
-  creat_ts: {
+  created_ts: {
     type: Number,
     default: Date.now()
   }

@@ -3,6 +3,8 @@ var router = express.Router();
 
 var crypto = require('crypto');
 
+var qiniu = require('qiniu');
+
 var session = require('express-session');
 var RedisStore = require('connect-redis')(session);
 
@@ -319,7 +321,7 @@ router.post('/merchant_add', function (req, res, next) { // 添加商家账号
               name: name,
               address: address,
               desc: desc,
-              create_ts: Date.now()
+              created_ts: Date.now()
             })
             merchantUser.save()
               .then(() => {
@@ -412,7 +414,7 @@ router.post('/shop_add', function (req, res, next) {
     return
   }
   reqBody.location = [longitude, latitude]
-  reqBody.create_ts = Date.now()
+  reqBody.created_ts = Date.now()
   var merchantShop = new MerchantShop(reqBody)
   merchantShop.save()
     .then(data => {
@@ -438,7 +440,7 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
   var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
   var skip = (page - 1) * limit
   var conditions = reqQuery.merchant_id ? { merchant_id: reqQuery.merchant_id } : {}
-  MerchantShop.count()
+  MerchantShop.find(conditions).count()
     .then(count => {
       if (!count) {
         res.json({
@@ -489,30 +491,87 @@ router.get('/near_shops', function (req, res, next) { // 查询附近的店铺�
     return
   }
   var maxDistance = reqQuery.max_distance
-  var location, longitude, longitude
-  location = reqQuery.location.split(',')
-  longitude = parseFloat(location[0])
-  latitude = parseFloat(location[1])
-  var nearSphere = [ longitude, latitude ]
-  var locationOptions = maxDistance ? {
-    $nearSphere: nearSphere,
-    $maxDistance: parseFloat(maxDistance) / 6378 // 此处要转换为弧度，6378为地球半径，单位km
-  } : { $nearSphere: nearSphere }
-  MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip)
+  var locationArr, longitude, longitude
+  locationArr = reqQuery.location.split(',')
+  longitude = parseFloat(locationArr[0])
+  latitude = parseFloat(locationArr[1])
+  var locationRes = [ longitude, latitude ]
+  // var locationOptions = maxDistance ? {
+  //   $nearSphere: locationRes,
+  //   $maxDistance: parseFloat(maxDistance) / 6371 // 此处要转换为弧度，6371为地球半径，单位km
+  // } : { $nearSphere: locationRes }
+
+  MerchantShop.aggregate([{ // 返回带距离的数据，单位是米
+    '$geoNear': {
+      'near': {
+          'type': 'Point',
+          'coordinates': locationRes
+        },
+      'spherical': true,
+      'distanceField': 'distance_m', // 最后生成的距离字段
+      'limit': limit
+    }
+  }, { '$skip': skip }])
     .then(data => {
       res.json({
-        success: false,
+        success: true,
         msg: '获取附近店铺成功',
         data: data
       })
     })
     .catch(err => {
       res.json({
-        success: true,
-        mag: '获取附近店铺失败',
-        err: err
+        success: false,
+        msg: '获取附近店铺失败',
+        err: err.toString()
       })
     })
+
+  // MerchantShop.geoNear(locationRes, { spherical: true, limit: limit}) // 返回带距离的数据，单位是弧度，要乘以地球半径8371，但是没有skip参数
+  //   .then(data => {
+  //     res.json({
+  //       success: true,
+  //       msg: '获取附近店铺成功',
+  //       data: data
+  //     })
+  //   })
+  //   .catch(err => {
+  //     res.json({
+  //       success: false,
+  //       mag: '获取附近店铺失败',
+  //       err: err.toString()
+  //     })
+  //   })
+
+  // MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip) // 返回不带距离的数据
+  //   .then(data => {
+  //     res.json({
+  //       success: true,
+  //       msg: '获取附近店铺成功',
+  //       data: data
+  //     })
+  //   })
+  //   .catch(err => {
+  //     res.json({
+  //       success: false,
+  //       mag: '获取附近店铺失败',
+  //       err: err.toString()
+  //     })
+  //   })
+})
+
+router.post('/get_qiniu_upload_token', function (req, res, next) {
+  var accessKey = 'QimXTd2UT59EgNfZuEJ2_27gEwHRCSmw5sW_sO9u';
+  var secretKey = 'wOQyg5FpX8OFsyRsnQRtHteoqMPSEwWbatY99IaO';
+  var mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
+
+  var putPolicy = new qiniu.rs.PutPolicy({ scope: 'wusuowei' });
+  var uploadToken = putPolicy.uploadToken(mac);
+
+  res.json({
+    success: true,
+    data: uploadToken
+  })
 })
 
 module.exports = router
