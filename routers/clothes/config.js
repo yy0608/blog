@@ -10,5 +10,10 @@ module.exports = {
     appkey: '32cf6a39ef9c100f8d1b68d835b1e995',
     templateId: 90192, // 模板ID
     smsType: 0 // Enum{0: 普通短信, 1: 营销短信}
+  },
+  qiniuConfig: {
+    default_bucket: 'wusuowei',
+    access_key: 'QimXTd2UT59EgNfZuEJ2_27gEwHRCSmw5sW_sO9u',
+    secret_key: 'wOQyg5FpX8OFsyRsnQRtHteoqMPSEwWbatY99IaO'
   }
 };

@@ -11,6 +11,7 @@ var RedisStore = require('connect-redis')(session);
 var EmployUser = require('../../models/clothes/EmployUser.js');
 var MerchantUser = require('../../models/clothes/MerchantUser.js');
 var MerchantShop = require('../../models/clothes/MerchantShop.js');
+var GoodsCategory = require('../../models/clothes/GoodsCategory.js');
 
 var CaptchaSDK = require('dx-captcha-sdk')
 var captcha = new CaptchaSDK('b971bdbee8e1d2780783782d066d0cf8', 'de85519b7bded1dab9a2ad1f4db195a5')
@@ -21,9 +22,10 @@ var utils = require('../../utils.js');
 
 var config = require('./config.js');
 
-var smsConfig = config.smsConfig
+var smsConfig = config.smsConfig;
 
-var ssender = undefined
+var ssender = undefined;
+var accessKey = undefined, secretKey = undefined, mac = undefined, resourceConfig = undefined, bucketManager = undefined
 
 router.use(session({
   secret: 'clothes_session',
@@ -560,10 +562,26 @@ router.get('/near_shops', function (req, res, next) { // 查询附近的店铺�
   //   })
 })
 
+router.get('/goods_categories', function (req, res, next) {
+  GoodsCategory.find()
+    .then(data => {
+      res.json({
+        success: true,
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        err: err
+      })
+    })
+})
+
 router.post('/get_qiniu_upload_token', function (req, res, next) {
-  var accessKey = 'QimXTd2UT59EgNfZuEJ2_27gEwHRCSmw5sW_sO9u';
-  var secretKey = 'wOQyg5FpX8OFsyRsnQRtHteoqMPSEwWbatY99IaO';
-  var mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
+  accessKey = accessKey || config.qiniuConfig.access_key;
+  secretKey = secretKey || config.qiniuConfig.secret_key;
+  mac = mac || new qiniu.auth.digest.Mac(accessKey, secretKey);
 
   var putPolicy = new qiniu.rs.PutPolicy({ scope: 'wusuowei' });
   var uploadToken = putPolicy.uploadToken(mac);
@@ -571,6 +589,77 @@ router.post('/get_qiniu_upload_token', function (req, res, next) {
   res.json({
     success: true,
     data: uploadToken
+  })
+})
+
+router.post('/qiniu_resource_stat', function (req, res, next) {
+  var reqBody = req.body;
+  var bucket = reqBody.bucket || config.qiniuConfig.default_bucket;
+  var resourceKey = reqBody.key
+  if (!resourceKey) {
+    res.json({
+      success: false,
+      msg: '缺少参数key'
+    })
+    return;
+  }
+
+  accessKey = accessKey || config.qiniuConfig.access_key;
+  secretKey = secretKey || config.qiniuConfig.secret_key;
+
+  mac = mac || new qiniu.auth.digest.Mac(accessKey, secretKey);
+  resourceConfig = resourceConfig || new qiniu.conf.Config();
+  bucketManager = bucketManager || new qiniu.rs.BucketManager(mac, resourceConfig);
+
+  bucketManager.stat(bucket, resourceKey, function (err, data) {
+    if (err) {
+      res.json({
+        sucess: false,
+        msg: '获取资源信息出错',
+        err: err.toString()
+      })
+      return
+    }
+    res.json({
+      success: true,
+      msg: '获取资源信息成功',
+      data: data
+    })
+  })
+})
+
+router.post('/delete_qiniu_resource', function (req, res, next) {
+  var reqBody = req.body;
+  var bucket = reqBody.bucket || config.qiniuConfig.default_bucket;
+  var resourceKey = reqBody.key
+  if (!resourceKey) {
+    res.json({
+      success: false,
+      msg: '缺少参数key'
+    })
+    return;
+  }
+
+  accessKey = accessKey || config.qiniuConfig.access_key;
+  secretKey = secretKey || config.qiniuConfig.secret_key;
+
+  mac = mac || new qiniu.auth.digest.Mac(accessKey, secretKey);
+  resourceConfig = resourceConfig || new qiniu.conf.Config();
+  bucketManager = bucketManager || new qiniu.rs.BucketManager(mac, resourceConfig);
+
+  bucketManager.delete(bucket, resourceKey, function (err, respBody, respInfo) {
+    if (err) {
+      res.json({
+        success: false,
+        msg: '资源删除失败',
+        err: err.toString()
+      })
+      return
+    }
+    res.json({
+      success: true,
+      msg: '删除资源成功'
+    })
   })
 })
 
