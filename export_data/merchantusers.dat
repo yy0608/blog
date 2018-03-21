@@ -1,0 +1,5 @@
+{"_id":{"$oid":"5aa79ca628ff6920b09028b8"},"phone":"13566666666","password":"c8e22cfca3e914afbe471390d1bc46d7","manager":"老高","email":"447462224@qq.com","name":"金贾","address":"横岗大厦","desc":"测试信息","creat_ts":1.520933857789e+12}
+{"_id":{"$oid":"5aa79e4bdd567a23442ff9ad"},"phone":"18566720002","password":"9e37d4ca31feaaab764e8d9325c0dadb","manager":"友谊","email":"214966991@qq.com","name":"我的店铺","address":"横岗大厦","desc":"测试信息","creat_ts":1.520934288655e+12}
+{"_id":{"$oid":"5aa88637f4e5c329845ddeaa"},"phone":"13566668888","password":"88b962f77eb73951da5e6d1ab7f1af7d","manager":"刘总","email":"liuxiaoping@163.com","name":"小绵羊","address":"布吉地铁站A出口","desc":"没有太多备注","creat_ts":1.520993456875e+12}
+{"_id":{"$oid":"5aa8869af4e5c329845ddeab"},"phone":"13688886666","password":"0edcb18fcd98cf2c80ecdd62570960e2","manager":"张总","email":"zhangsan@163.com","name":"老张涮羊肉","address":"福田购物广场","desc":"这里比较难找，打电话","creat_ts":1.520993456875e+12}
+{"_id":{"$oid":"5aa889143a23fd2dc8e72e19"},"phone":"18566720000","password":"231cf39cd1285189bc65e27fbb075bcd","manager":"李老板","email":"81322341234@qq.com","name":"丽萨服饰","address":"横岗眼镜城对面100m","desc":"","creat_ts":1.52099452626e+12}
