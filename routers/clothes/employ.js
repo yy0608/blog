@@ -1,7 +1,10 @@
 var express = require('express');
 var router = express.Router();
 
+var axios = require('axios');
 var crypto = require('crypto');
+// var FormData = require('form-data');
+var needle = require('needle');
 
 var qiniu = require('qiniu');
 
@@ -590,6 +593,54 @@ router.post('/get_qiniu_upload_token', function (req, res, next) {
     success: true,
     data: uploadToken
   })
+})
+
+router.post('/upload_to_qiniu', function (req, res, next) {
+  var reqBody = req.body;
+
+  accessKey = accessKey || config.qiniuConfig.access_key;
+  secretKey = secretKey || config.qiniuConfig.secret_key;
+  mac = mac || new qiniu.auth.digest.Mac(accessKey, secretKey);
+
+  var putPolicy = new qiniu.rs.PutPolicy({ scope: 'wusuowei' });
+  var uploadToken = putPolicy.uploadToken(mac);
+
+  // var formData = new FormData()
+  // formData.append('file', reqBody.fileList[0])
+  // formData.append('key', reqBody.key)
+  // formData.append('token', uploadToken)
+
+  needle.post(config.qiniuConfig.uploadUrl, {
+    file: reqBody.fileList[0],
+    key: reqBody.key,
+    token: uploadToken
+  }, { multipart: true }, function (err, resp, body) {
+    console.log(111, err)
+    console.log(333, body)
+    res.json({
+      success: true
+    })
+  })
+
+  // axios({
+  //   url: config.qiniuConfig.uploadUrl,
+  //   method: 'post',
+  //   data: formData
+  // })
+  //   .then(res => {
+  //     res.json({
+  //       success: true,
+  //       data: res.data
+  //     })
+  //   })
+  //   .catch(err => {
+  //     console.log(err)
+  //     res.json({
+  //       success: false,
+  //       err: err.toString()
+  //     })
+  //   })
+
 })
 
 router.post('/qiniu_resource_stat', function (req, res, next) {
