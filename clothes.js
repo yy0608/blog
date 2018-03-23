@@ -37,8 +37,7 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use('/v1/mp', require('./routers/clothes/mp.js'))
 app.use('/v1/employ', require('./routers/clothes/employ.js'))
 app.use('/v1/merchant', require('./routers/clothes/merchant.js'))
-// app.use('/app', require('./routers/api.js'))
-// app.use('/admin', require('./routers/admin.js'))
+app.use('/v1/qiniu', require('./routers/clothes/qiniu.js'))
 
 // 连接数据库
 mongoose.connect('mongodb://youyi:yy0608@localhost:27017/clothes', {
