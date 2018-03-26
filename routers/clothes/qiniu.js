@@ -241,7 +241,7 @@ router.post('/resource_delete_batch', function (req, res, next) {
         res.json({
           success: true,
           code: 2,
-          msg: '部分批量删除成功，' + successNum + '/' + keys.length
+          msg: '总数' + keys.length + '，成功' + successNum
         })
       }
     } else {
@@ -295,9 +295,7 @@ router.post('/resource_move_batch', function (req, res, next) {
 
     if (parseInt(respInfo.statusCode / 100) === 2) {
       var successNum = 0;
-      // var successKyes = [];
       respBody.forEach(function (item) {
-        console.log(item)
         if (item.code === 200) {
           successNum++
         }
@@ -311,7 +309,7 @@ router.post('/resource_move_batch', function (req, res, next) {
         res.json({
           success: true,
           code: 2,
-          msg: '部分批量移动成功，' + successNum + '/' + srcKeys.length
+          msg: '总数' + srcKeys.length + '，成功' + successNum
         })
       }
     } else {

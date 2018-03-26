@@ -15,6 +15,11 @@ var utils = {
       str += arr[pos];
     }
     return str;
+  },
+  getIntersection: function (a, b) { // 数组交集
+    return a.filter(function (v) {
+      return b.includes(v)
+    })
   }
 }
 
