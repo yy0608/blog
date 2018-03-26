@@ -21,23 +21,6 @@ router.post('/generate_token', function (req, res, next) {
   })
 })
 
-// var storage = multer.memoryStorage();
-// var upload = multer({
-//   storage: storage,
-//   limits: {
-//     fileSize: bytes('2MB')
-//   },
-//   fileFilter: function (req, files, cb) {
-//     var type = '|' + files.mimetype.slice(files.mimetype.lastIndexOf('') + 1) + '|'
-//     var fileTypeValid = '|jpg|png|jpeg|gif|'.indexOf(type) !== -1
-//     cb(null, !!fileTypeValid)
-//   }
-// })
-
-// router.post('/resource_upload', upload.single('file'), function (req, res, next) {
-//   console.log(req.file)
-// })
-
 router.post('/resource_upload', function (req, res, next) { // 资源上传
   res.json({
     success: true
@@ -115,7 +98,7 @@ router.post('/resource_list', function (req, res, next) { // 获取资源列表
       items.forEach(function(item) {
         resList.push({
           key: item.key,
-          type: item.mimetype,
+          type: item.mimeType,
           fsize: item.fsize,
           putTime: item.putTime
         })
@@ -202,7 +185,7 @@ router.post('/resource_delete', function (req, res, next) { // 资源删除
         res.json({
           success: true,
           code: 1,
-          msg_error: respInfo.data.error,
+          err: respInfo.data.error,
           msg: '删除资源成功'
         })
       } else {
@@ -212,6 +195,131 @@ router.post('/resource_delete', function (req, res, next) { // 资源删除
           msg: '删除资源成功'
         })
       }
+    }
+  })
+})
+
+router.post('/resource_delete_batch', function (req, res, next) {
+  var reqBody = req.body;
+  var keys = reqBody.keys;
+  if (!keys || !keys.length || !(keys instanceof Array)) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var deleteOperations = [];
+  keys.forEach(function (item, index, arr) {
+    deleteOperations.push(qiniu.rs.deleteOp(config.qiniuConfig.default_bucket, item));
+  });
+
+  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
+  qiniuObj.bucketManager.batch(deleteOperations, function(err, respBody, respInfo) {
+    if (err) {
+      return res.json({
+        success: false,
+        msg: '批量删除失败',
+        err: err
+      })
+    }
+
+    if (parseInt(respInfo.statusCode / 100) === 2) {
+      var successNum = 0;
+      // var successKyes = [];
+      respBody.forEach(function (item) {
+        if (item.code === 200) {
+          successNum++
+        }
+      })
+      if (successNum === keys.length) {
+        res.json({
+          success: true,
+          msg: '全部批量删除成功'
+        })
+      } else {
+        res.json({
+          success: true,
+          code: 2,
+          msg: '部分批量删除成功，' + successNum + '/' + keys.length
+        })
+      }
+    } else {
+      res.json({
+        success: false,
+        msg: '批量删除失败',
+        err: respInfo.data.error
+      })
+    }
+  })
+})
+
+router.post('/resource_move_batch', function (req, res, next) {
+  var reqBody = req.body;
+  var srcKeys = reqBody.srcKeys;
+  // var destKeys = reqBody.destKeys;
+  var destDirname = reqBody.destDirname;
+
+  if (!srcKeys || !srcKeys.length || !(srcKeys instanceof Array)) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  if (!destDirname || !destDirname.length || destDirname.indexOf('/') !== destDirname.length - 1) {
+    return res.json({
+      success: false,
+      msg: '目标文件夹需要且以/结尾'
+    })
+  }
+
+  var srcBucket = reqBody.srcBucket || config.qiniuConfig.default_bucket;
+  var destBucket = reqBody.destBucket || config.qiniuConfig.default_bucket;
+
+  var moveOperations = [];
+  srcKeys.forEach(function (item, index, arr) {
+    var filename = item.split('/')[item.split('/').length - 1]
+    moveOperations.push(qiniu.rs.moveOp(srcBucket, item, destBucket, destDirname + filename));
+  });
+
+  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
+  qiniuObj.bucketManager.batch(moveOperations, function(err, respBody, respInfo) {
+    if (err) {
+      return res.json({
+        success: false,
+        msg: '批量移动失败',
+        err: err
+      })
+    }
+
+    if (parseInt(respInfo.statusCode / 100) === 2) {
+      var successNum = 0;
+      // var successKyes = [];
+      respBody.forEach(function (item) {
+        console.log(item)
+        if (item.code === 200) {
+          successNum++
+        }
+      })
+      if (successNum === srcKeys.length) {
+        res.json({
+          success: true,
+          msg: '全部批量移动成功'
+        })
+      } else {
+        res.json({
+          success: true,
+          code: 2,
+          msg: '部分批量移动成功，' + successNum + '/' + srcKeys.length
+        })
+      }
+    } else {
+      res.json({
+        success: false,
+        msg: '批量移动失败',
+        err: respInfo.data.error
+      })
     }
   })
 })
