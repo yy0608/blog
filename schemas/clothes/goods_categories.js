@@ -6,28 +6,36 @@ module.exports = new mongoose.Schema({
     required: true,
     unique: true
   },
-  children: {
-    type: [],
+  label: {
+    type: String,
     required: true,
     unique: true
+  },
+  children: {
+    type: [],
+    default: []
   }
+  // children: {
+  //   type: String,
+  //   unique: true
+  // }
   // 例如：
   // [
   //   {
-  //     _id: '',
+  //     id: '',
   //     value: '',
   //     children: [
   //       {
-  //         sec_id: '',
+  //         id: '',
   //         value: '',
   //         children: [
   //           {
-  //             thrd_id: '',
+  //             id: '',
   //             value: '',
   //             logo: ''
   //           },
   //           {
-  //             thrd_id: '',
+  //             id: '',
   //             value: '',
   //             logo: ''
   //           }

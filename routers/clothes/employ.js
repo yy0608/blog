@@ -97,7 +97,6 @@ router.post('/login', function (req, res, next) {
           })
         })
     }).catch(err => {
-      console.log(err)
       res.json({
         success: false,
         code: 10001,
@@ -555,6 +554,132 @@ router.get('/near_shops', function (req, res, next) { // 查询附近的店铺�
   //       err: err.toString()
   //     })
   //   })
+})
+
+router.post('/category_add', function (req, res, next) {
+  var reqBody = req.body;
+  var value = reqBody.value;
+  var parent = reqBody.parent;
+  var label = reqBody.label;
+  var icon = reqBody.icon;
+  if (!parent || !(parent instanceof Array) || !parent.length) {
+    var goodsCategory = new GoodsCategory({
+      value: value,
+      label: label,
+      children: []
+    })
+    goodsCategory.save()
+      .then(data => {
+        res.json({
+          success: true,
+          msg: '添加分类成功'
+        })
+      })
+      .catch(err => {
+        res.json({
+          success: false,
+          msg: '添加分类失败',
+          err: err
+        })
+      })
+  } else {
+    if (parent.length >= 2) {
+      res.json({
+        success: false,
+        msg: '上级分类最多2级'
+      })
+    }
+    if (parent.length === 1) {
+      GoodsCategory.update({ value: parent[0] }, {
+        '$addToSet': {
+          children: {
+            value: value,
+            label: label,
+            children: []
+          }
+        }
+      })
+        .then(data => {
+          res.json({
+            success: true,
+            msg: '添加分类成功'
+          })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '添加分类失败',
+            err: err
+          })
+        })
+    } else if (parent.length === 2) {
+      GoodsCategory.findOne({ value: parent[0] })
+        .then(data => {
+          if (!data) {
+            return res.json({
+              success: false,
+              msg: '不存在的一级分类'
+            })
+          }
+          var preItem = undefined;
+          var afterItem = undefined;
+          data.children.forEach(function (item, index) { // 找到二级value
+            if (item.value === parent[1]) {
+              preItem = {
+                value: item.value,
+                label: item.label,
+                children: [...item.children]
+              }
+              item.children.push({
+                value: value,
+                label: label,
+                icon: icon
+              })
+              afterItem = item
+            }
+          })
+          GoodsCategory.update({ value: parent[0] }, { // 删掉
+            '$pull': {
+              children: preItem
+            }
+          })
+            .then(() => {
+              GoodsCategory.update({ value: parent[0] }, { // 添加
+                '$push': {
+                  children: afterItem
+                }
+              })
+                .then(() => {
+                  res.json({
+                    success: true,
+                    msg: '添加多级分类成功'
+                  })
+                })
+                .catch(err => {
+                  res.json({
+                    success: false,
+                    msg: '添加多级分类失败',
+                    err: err
+                  })
+                })
+            })
+            .catch(err => {
+              res.json({
+                success: false,
+                msg: '添加多级分类失败',
+                err: err
+              })
+            })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '添加分类失败',
+            err: err.toString()
+          })
+        })
+    }
+  }
 })
 
 router.get('/goods_categories', function (req, res, next) {
