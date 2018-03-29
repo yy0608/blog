@@ -160,101 +160,7 @@ router.post('/resource_move', function (req, res, next) { // 资源移动或重�
   })
 })
 
-router.post('/resource_delete', function (req, res, next) { // 资源删除
-  var reqBody = req.body;
-  var bucket = reqBody.bucket || config.qiniuConfig.default_bucket;
-  var resourceKey = reqBody.key
-  if (!resourceKey) {
-    return res.json({
-      success: false,
-      msg: '缺少参数key'
-    })
-  }
-
-  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
-
-  qiniuObj.bucketManager.delete(bucket, resourceKey, function (err, respBody, respInfo) {
-    if (err) {
-      res.json({
-        success: false,
-        msg: '资源删除失败',
-        err: err.toString()
-      })
-    } else {
-      if (respInfo.data.error) {
-        res.json({
-          success: true,
-          code: 1,
-          err: respInfo.data.error,
-          msg: '删除资源成功'
-        })
-      } else {
-        res.json({
-          success: true,
-          code: 0,
-          msg: '删除资源成功'
-        })
-      }
-    }
-  })
-})
-
-router.post('/resource_delete_batch', function (req, res, next) {
-  var reqBody = req.body;
-  var keys = reqBody.keys;
-  if (!keys || !keys.length || !(keys instanceof Array)) {
-    return res.json({
-      success: false,
-      msg: '缺少参数或参数错误'
-    })
-  }
-
-  var deleteOperations = [];
-  keys.forEach(function (item, index, arr) {
-    deleteOperations.push(qiniu.rs.deleteOp(config.qiniuConfig.default_bucket, item));
-  });
-
-  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
-  qiniuObj.bucketManager.batch(deleteOperations, function(err, respBody, respInfo) {
-    if (err) {
-      return res.json({
-        success: false,
-        msg: '批量删除失败',
-        err: err
-      })
-    }
-
-    if (parseInt(respInfo.statusCode / 100) === 2) {
-      var successNum = 0;
-      // var successKyes = [];
-      respBody.forEach(function (item) {
-        if (item.code === 200) {
-          successNum++
-        }
-      })
-      if (successNum === keys.length) {
-        res.json({
-          success: true,
-          msg: '全部批量删除成功'
-        })
-      } else {
-        res.json({
-          success: true,
-          code: 2,
-          msg: '总数' + keys.length + '，成功' + successNum
-        })
-      }
-    } else {
-      res.json({
-        success: false,
-        msg: '批量删除失败',
-        err: respInfo.data.error
-      })
-    }
-  })
-})
-
-router.post('/resource_move_batch', function (req, res, next) {
+router.post('/resource_move_batch', function (req, res, next) { // 资源批量移动
   var reqBody = req.body;
   var srcKeys = reqBody.srcKeys;
   // var destKeys = reqBody.destKeys;
@@ -316,6 +222,100 @@ router.post('/resource_move_batch', function (req, res, next) {
       res.json({
         success: false,
         msg: '批量移动失败',
+        err: respInfo.data.error
+      })
+    }
+  })
+})
+
+router.post('/resource_delete', function (req, res, next) { // 资源删除
+  var reqBody = req.body;
+  var bucket = reqBody.bucket || config.qiniuConfig.default_bucket;
+  var resourceKey = reqBody.key
+  if (!resourceKey) {
+    return res.json({
+      success: false,
+      msg: '缺少参数key'
+    })
+  }
+
+  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
+
+  qiniuObj.bucketManager.delete(bucket, resourceKey, function (err, respBody, respInfo) {
+    if (err) {
+      res.json({
+        success: false,
+        msg: '资源删除失败',
+        err: err.toString()
+      })
+    } else {
+      if (respInfo.data.error) {
+        res.json({
+          success: true,
+          code: 1,
+          err: respInfo.data.error,
+          msg: '删除资源成功'
+        })
+      } else {
+        res.json({
+          success: true,
+          code: 0,
+          msg: '删除资源成功'
+        })
+      }
+    }
+  })
+})
+
+router.post('/resource_delete_batch', function (req, res, next) { // 资源批量删除
+  var reqBody = req.body;
+  var keys = reqBody.keys;
+  if (!keys || !keys.length || !(keys instanceof Array)) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var deleteOperations = [];
+  keys.forEach(function (item, index, arr) {
+    deleteOperations.push(qiniu.rs.deleteOp(config.qiniuConfig.default_bucket, item));
+  });
+
+  qiniuObj.bucketManager = qiniuObj.bucketManager || generateBucketManager();
+  qiniuObj.bucketManager.batch(deleteOperations, function(err, respBody, respInfo) {
+    if (err) {
+      return res.json({
+        success: false,
+        msg: '批量删除失败',
+        err: err
+      })
+    }
+
+    if (parseInt(respInfo.statusCode / 100) === 2) {
+      var successNum = 0;
+      // var successKyes = [];
+      respBody.forEach(function (item) {
+        if (item.code === 200) {
+          successNum++
+        }
+      })
+      if (successNum === keys.length) {
+        res.json({
+          success: true,
+          msg: '全部批量删除成功'
+        })
+      } else {
+        res.json({
+          success: true,
+          code: 2,
+          msg: '总数' + keys.length + '，成功' + successNum
+        })
+      }
+    } else {
+      res.json({
+        success: false,
+        msg: '批量删除失败',
         err: respInfo.data.error
       })
     }

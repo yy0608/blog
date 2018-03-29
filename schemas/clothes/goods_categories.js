@@ -1,49 +1,26 @@
 var mongoose = require('mongoose');
 
 module.exports = new mongoose.Schema({
-  value: {
+  name: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
-  label: {
+  desc: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
-  children: {
-    type: [],
-    default: []
+  level: {
+    type: Number,
+    required: true
+  },
+  icon: {
+    type: String,
+    default: ''
+  },
+  parent_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null
   }
-  // children: {
-  //   type: String,
-  //   unique: true
-  // }
-  // 例如：
-  // [
-  //   {
-  //     id: '',
-  //     value: '',
-  //     children: [
-  //       {
-  //         id: '',
-  //         value: '',
-  //         children: [
-  //           {
-  //             id: '',
-  //             value: '',
-  //             logo: ''
-  //           },
-  //           {
-  //             id: '',
-  //             value: '',
-  //             logo: ''
-  //           }
-  //         ]
-  //       }
-  //     ]
-  //   }
-  // ]
 }, {
   versionKey: false // 去掉__v字段
 })

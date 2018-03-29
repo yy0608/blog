@@ -114,7 +114,7 @@ router.post('/logout', function (req, res, next) {
   })
 })
 
-router.post('/add', function (req, res, next) {
+router.post('/user_add', function (req, res, next) {
   var reqBody = req.body;
   var username = reqBody.username && reqBody.username.trim();
   var password = reqBody.password;
@@ -558,48 +558,43 @@ router.get('/near_shops', function (req, res, next) { // 查询附近的店铺�
 
 router.post('/category_add', function (req, res, next) {
   var reqBody = req.body;
-  var value = reqBody.value;
-  var parent = reqBody.parent;
-  var label = reqBody.label;
+  var name = reqBody.name;
+  var desc = reqBody.desc;
   var icon = reqBody.icon;
-  if (!parent || !(parent instanceof Array) || !parent.length) {
-    var goodsCategory = new GoodsCategory({
-      value: value,
-      label: label,
-      children: []
-    })
-    goodsCategory.save()
-      .then(data => {
-        res.json({
-          success: true,
-          msg: '添加分类成功'
-        })
-      })
-      .catch(err => {
-        res.json({
-          success: false,
-          msg: '添加分类失败',
-          err: err
-        })
-      })
-  } else {
-    if (parent.length >= 2) {
+  var level = reqBody.parent.length + 1;
+  var parentId = reqBody.parent[reqBody.parent.length - 1];
+
+  GoodsCategory.findOne({
+    level: level,
+    name: name
+  }).then(data => {
+    if (data) {
       res.json({
         success: false,
-        msg: '上级分类最多2级'
+        msg: '该级分类下已存在相同名称'
       })
-    }
-    if (parent.length === 1) {
-      GoodsCategory.update({ value: parent[0] }, {
-        '$addToSet': {
-          children: {
-            value: value,
-            label: label,
-            children: []
-          }
-        }
-      })
+    } else {
+      var goodsCategory = undefined;
+      if (parentId) {
+        goodsCategory = new GoodsCategory({
+          name: name,
+          desc: desc,
+          level: level,
+          icon: icon,
+          parent_id: parentId
+        })
+      } else {
+        goodsCategory = new GoodsCategory({
+          name: name,
+          desc: desc,
+          level: level,
+          icon: icon
+        })
+      }
+
+      goodsCategory.save()
         .then(data => {
+          console.log(data)
           res.json({
             success: true,
             msg: '添加分类成功'
@@ -612,78 +607,21 @@ router.post('/category_add', function (req, res, next) {
             err: err
           })
         })
-    } else if (parent.length === 2) {
-      GoodsCategory.findOne({ value: parent[0] })
-        .then(data => {
-          if (!data) {
-            return res.json({
-              success: false,
-              msg: '不存在的一级分类'
-            })
-          }
-          var preItem = undefined;
-          var afterItem = undefined;
-          data.children.forEach(function (item, index) { // 找到二级value
-            if (item.value === parent[1]) {
-              preItem = {
-                value: item.value,
-                label: item.label,
-                children: [...item.children]
-              }
-              item.children.push({
-                value: value,
-                label: label,
-                icon: icon
-              })
-              afterItem = item
-            }
-          })
-          GoodsCategory.update({ value: parent[0] }, { // 删掉
-            '$pull': {
-              children: preItem
-            }
-          })
-            .then(() => {
-              GoodsCategory.update({ value: parent[0] }, { // 添加
-                '$push': {
-                  children: afterItem
-                }
-              })
-                .then(() => {
-                  res.json({
-                    success: true,
-                    msg: '添加多级分类成功'
-                  })
-                })
-                .catch(err => {
-                  res.json({
-                    success: false,
-                    msg: '添加多级分类失败',
-                    err: err
-                  })
-                })
-            })
-            .catch(err => {
-              res.json({
-                success: false,
-                msg: '添加多级分类失败',
-                err: err
-              })
-            })
-        })
-        .catch(err => {
-          res.json({
-            success: false,
-            msg: '添加分类失败',
-            err: err.toString()
-          })
-        })
     }
-  }
+  }).catch(err => {
+    res.json({
+      success: false,
+      msg: '添加分类失败',
+      err: err
+    })
+  })
 })
 
 router.get('/goods_categories', function (req, res, next) {
-  GoodsCategory.find()
+  var reqQuery = req.query;
+  var level = reqQuery.level;
+  var conditions = level ? { level: level } : {};
+  GoodsCategory.find(conditions)
     .then(data => {
       res.json({
         success: true,
@@ -696,6 +634,13 @@ router.get('/goods_categories', function (req, res, next) {
         err: err
       })
     })
+})
+
+router.post('/goods_add', function (req, res, next) {
+  var reqBody = req.body;
+  res.json({
+    success: true
+  })
 })
 
 module.exports = router
