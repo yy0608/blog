@@ -12,6 +12,7 @@ var EmployUser = require('../../models/clothes/EmployUser.js');
 var MerchantUser = require('../../models/clothes/MerchantUser.js');
 var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var GoodsCategory = require('../../models/clothes/GoodsCategory.js');
+var ShopGoods = require('../../models/clothes/ShopGoods.js');
 
 var utils = require('../../utils.js');
 var config = require('./config.js');
@@ -28,7 +29,7 @@ router.use(session({
     // port: 6379
   }),
   cookie: {
-    maxAge: 30 * 60 * 1000
+    maxAge: 60 * 60 * 1000 // 一小时
   },
   resave: true, // :(是否允许)当客户端并行发送多个请求时，其中一个请求在另一个请求结束时对session进行修改覆盖并保存。如果设置false，可以使用.touch方法，避免在活动中的session失效。
   saveUninitialized: false // 初始化session时是否保存到存储
@@ -638,9 +639,126 @@ router.get('/goods_categories', function (req, res, next) {
 
 router.post('/goods_add', function (req, res, next) {
   var reqBody = req.body;
-  res.json({
-    success: true
-  })
+  var shopId = reqBody.shop_id;
+  var categoryId = reqBody.category_id;
+  var title = reqBody.title;
+  var valuation = reqBody.valuation;
+  var figureImgs = reqBody.figure_imgs;
+  var detailImgs = reqBody.detail_imgs;
+  if (!shopId || !title || !valuation || !categoryId || !(figureImgs instanceof Array) || !figureImgs.length || !(detailImgs instanceof Array) || !detailImgs.length) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  MerchantShop.findOne({ _id: shopId })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '店铺不存在'
+        })
+      }
+
+      // 商品轮播图部分
+      var goodsFigureDirname = config.qiniuConfig.goodsFigureDirname;
+      var movedFigureImgs = [];
+      figureImgs.forEach(function (item, index, arr) {
+        var filename = item.split('/')[item.split('/').length - 1]
+        movedFigureImgs.push(goodsFigureDirname + filename);
+      })
+
+      // 商品详情图部分
+      var goodsDetailDirname = config.qiniuConfig.goodsDetailDirname;
+      var movedDetailImgs = [];
+      detailImgs.forEach(function (item, index, arr) {
+        var filename = item.split('/')[item.split('/').length - 1]
+        movedDetailImgs.push(goodsDetailDirname + filename);
+      })
+
+      var shopGoods = new ShopGoods({
+        merchant_id: data.merchant_id,
+        shop_id: shopId,
+        category_id: categoryId,
+        title: title,
+        valuation: valuation,
+        figure_imgs: movedFigureImgs,
+        detail_imgs: movedDetailImgs,
+        created_ts: Date.now()
+      })
+      shopGoods.save()
+        .then(data => {
+          res.json({
+            success: true,
+            _id: data._id,
+            msg: '商品添加成功'
+          })
+
+          utils.resourceMoveBatch({
+            srcKeys: figureImgs,
+            destDirname: goodsFigureDirname,
+            error: function (err) {
+              utils.writeQiniuErrorLog('批量移动商品轮播图片失败，err: ' + err)
+            }
+          })
+          utils.resourceMoveBatch({
+            srcKeys: detailImgs,
+            destDirname: goodsDetailDirname,
+            error: function (err) {
+              utils.writeQiniuErrorLog('批量移动商品详情图片失败，err: ' + err)
+            }
+          })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '商品添加失败',
+            err: err.toString()
+          })
+        })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '查询店铺失败',
+        err: err.toString()
+      })
+    })
 })
+
+router.get('/goods_list', function (req, res, next) {
+  ShopGoods.find({ shop_id: req.query.shop_id }).populate([{
+    path: 'merchant_id'
+  }, {
+    path: 'shop_id'
+  }, {
+    path: 'category_id'
+  }])
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取商品列表成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商品列表失败',
+        err: err.toString()
+      })
+    })
+})
+
+// utils.resourceDelete({
+//   key: 'cache/icon_test/1c8c3ce7-11cd-4cb0-8ec1-a19fc4beda5e.jpg',
+//   error: function (err) {
+//     console.log(err)
+//   },
+//   success: function (res) {
+//     console.log(res)
+//   }
+// })
 
 module.exports = router

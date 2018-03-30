@@ -1,19 +1,22 @@
 var mongoose = require('mongoose')
 
 module.exports = new mongoose.Schema({
+  merchant_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MerchantUser',
+    required: true,
+  },
   shop_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'MerchantShop'
+    ref: 'MerchantShop',
+    required: true,
   },
   category_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'GoodsCategory'
-  },
-  title: {
-    type: String,
+    ref: 'GoodsCategory',
     required: true
   },
-  desc: {
+  title: {
     type: String,
     required: true
   },

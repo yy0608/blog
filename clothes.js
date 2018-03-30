@@ -1,7 +1,7 @@
-var express = require('express')
-var bodyParser = require('body-parser')
-var mongoose = require('mongoose')
-var redis = require('redis')
+var express = require('express');
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
+var redis = require('redis');
 
 var app = express()
 
@@ -11,6 +11,9 @@ global.redisClient = redis.createClient(6379, 'localhost')
 global.redisClient.on('error', function (err) {
   console.log('redis connect error, message: ' + err)
 })
+
+// var log = '[' + new Date() + '] ' + 'http://www.baidu.com/' + '\n';
+// global.errorLogfile.write(log + '\n');
 
 // 使用全局的Promise，需要高版本node支持Promise，也可使用bluebird
 mongoose.Promise = global.Promise
