@@ -53,10 +53,10 @@ mongoose.connect('mongodb://youyi:yy0608@localhost:27017/laogao', {
 })
 
 // 监听端口，开启服务
-app.listen(3000, function(err) {
+app.listen(3003, function(err) {
   if (err) {
     console.log(err)
   } else {
-    console.log('listen on port 3000')
+    console.log('listen on port 3003')
   }
 })
