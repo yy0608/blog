@@ -1,8 +1,8 @@
 var express = require('express')
 var router = express.Router()
-var Category = require('../models/Category.js')
-var Topic = require('../models/Topic.js')
-var Comment = require('../models/Comment.js')
+var Category = require('../../models/forum/Category.js')
+var Topic = require('../../models/forum/Topic.js')
+var Comment = require('../../models/forum/Comment.js')
 
 router.get('/category/list', function (req, res, next) {
   var responseData = {

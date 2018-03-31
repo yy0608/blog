@@ -1,6 +1,6 @@
 var express = require('express')
 var router = express.Router()
-var User = require('../models/User.js')
+var User = require('../../models/forum/User.js')
 var mongoose = require('mongoose')
 mongoose.Promise = global.Promise
 

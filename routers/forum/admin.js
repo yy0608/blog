@@ -1,7 +1,7 @@
 var express = require('express')
-var User = require('../models/User.js')
-var Category = require('../models/Category.js')
-var Topic = require('../models/Topic.js')
+var User = require('../../models/forum/User.js')
+var Category = require('../../models/forum/Category.js')
+var Topic = require('../../models/forum/Topic.js')
 var router = express.Router()
 
 var responseData

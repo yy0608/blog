@@ -35,9 +35,9 @@ app.all('*', function(req, res, next) {
 });
 
 // 设置路由组
-app.use('/', require('./routers/main.js'))
-app.use('/api', require('./routers/api.js'))
-app.use('/admin', require('./routers/admin.js'))
+app.use('/', require('./routers/forum/main.js'))
+app.use('/api', require('./routers/forum/api.js'))
+app.use('/admin', require('./routers/forum/admin.js'))
 
 // 连接数据库
 mongoose.connect('mongodb://youyi:yy0608@localhost:27017/laogao', {
