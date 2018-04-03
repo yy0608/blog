@@ -274,12 +274,11 @@ router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var desc = reqBody.desc;
   var code = reqBody.code;
 
-  if (!phone || phone.length !== 11 || !manager || !email || !name || !address) {
-    res.json({
+  if (!phone || phone.length !== 11 || !manager || !email || !name || !address || !code) {
+    return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
-    return;
   }
 
   global.redisClient.get(phone, function (err, v) {
@@ -351,6 +350,37 @@ router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   })
 })
 
+router.get('/merchant_detail', function (req, res, next) {
+  var _id = req.query._id;
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+  MerchantUser.findOne({ _id: _id })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '商家不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '获取商家详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商家详情失败',
+        err: err.toString()
+      })
+    })
+})
+
 router.get('/merchant_list', function (req, res, next) {
   var reqQuery = req.query
   var parsePage = parseInt(reqQuery.page)
@@ -395,6 +425,59 @@ router.get('/merchant_list', function (req, res, next) {
     })
 })
 
+router.post('/merchant_edit', function (req, res, next) {
+  var reqBody = req.body;
+  var _id = reqBody._id;
+  var phone = reqBody.phone && reqBody.phone.trim();
+  var manager = reqBody.manager;
+  var email = reqBody.email;
+  var name = reqBody.name;
+  var address = reqBody.address;
+  var desc = reqBody.desc;
+  var code = reqBody.code;
+
+  if (!_id || !phone || phone.length !== 11 || !manager || !email || !name || !address || !code) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  global.redisClient.get(phone, function (err, v) {
+    if (err) {
+      res.json({
+        success: false,
+        msg: 'redis处理异常'
+      })
+      return
+    }
+    if (v !== code) {
+      res.json({
+        success: false,
+        msg: '短信验证码错误或失效'
+      })
+    } else {
+      redisClient.del(phone); // 删除
+      // MerchantUser.update({ _id: _id }, {
+      MerchantUser.findOneAndUpdate({ _id: _id }, {
+        manager, email, name, address, desc
+      })
+        .then(() => {
+          res.json({
+            success: true,
+            msg: '修改商家信息成功'
+          })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '修改商家信息失败'
+          })
+        })
+    }
+  })
+})
+
 router.post('/shop_add', function (req, res, next) {
   var reqBody = req.body;
   var location, longitude, longitude
@@ -411,14 +494,33 @@ router.post('/shop_add', function (req, res, next) {
     return
   }
   reqBody.location = [longitude, latitude]
-  reqBody.created_ts = Date.now()
+
+  var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.logo)
+  var originKey = reqBody.logo;
+  var filename = undefined;
+  var destKey = undefined;
+  if (!isWebUrl) {
+    filename = reqBody.logo.split('/')[reqBody.logo.split('/').length - 1];
+    destKey = config.qiniuConfig.shopLogoDirname + filename;
+    reqBody.logo = destKey
+  }
+
   var merchantShop = new MerchantShop(reqBody)
   merchantShop.save()
-    .then(data => {
+    .then(() => {
       res.json({
         success: true,
         msg: '添加店铺成功'
       })
+      if (!isWebUrl) { // 如果是上传到七牛的，移动图片
+        utils.resourceMove({
+          srcKey: originKey,
+          destKey: destKey,
+          error: function (err) {
+            utils.writeQiniuErrorLog('单个移动商品logo出错，err: ' + err)
+          }
+        })
+      }
     })
     .catch(err => {
       res.json({
@@ -451,8 +553,22 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
           path: 'merchant_id',
           select: {
             password: 0
+          },
+          options: {
+            limit: 1
           }
         };
+        // MerchantShop.find(conditions).populate(populateOptions).limit(limit).skip(skip).sort({ _id: -1 })
+        //   .exec(function (err, shops) {
+        //     if (err) return console.log(err)
+        //     shops = shops.filter(function (shop) {
+        //       return shop.merchant_id
+        //     })
+        //     res.json({
+        //       data: shops,
+        //       msg: '123123sdf'
+        //     })
+        //   })
         MerchantShop.find(conditions).limit(limit).skip(skip).populate(populateOptions).sort({ _id: -1 })
           .then(data => {
             res.json({
@@ -470,6 +586,100 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
             })
           })
       }
+    })
+})
+
+router.get('/shop_detail', function (req, res, next) {
+  var _id = req.query.shop_id;
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数'
+    })
+  }
+  MerchantShop.findOne({ _id: _id })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '店铺不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '查询店铺详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '查询店铺详情出错',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/shop_edit', function (req, res, next) {
+  var reqBody = req.body;
+  var _id = reqBody._id;
+  if (!_id || Object.keys(reqBody).length < 8) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+  delete reqBody._id
+  if (reqBody.logo && reqBody.logo !== reqBody.origin_logo) {
+    var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.logo);
+    var originKey = reqBody.logo;
+    var filename = undefined;
+    var destKey = undefined;
+    if (!isWebUrl) {
+      utils.resourceDelete({ // 删除logo
+        key: reqBody.origin_logo,
+        success: function (res) {
+          filename = reqBody.logo.split('/')[reqBody.logo.split('/').length - 1];
+          destKey = config.qiniuConfig.shopLogoDirname + filename;
+          reqBody.logo = destKey
+
+          utils.resourceMove({ // 移动logo
+            srcKey: originKey,
+            destKey: destKey,
+            success: function (res) {
+            },
+            error: function (err) {
+              utils.writeQiniuErrorLog('修改店铺logo图，单个移动过程失败，err: ' + err)
+            }
+          })
+        },
+        error: function (err) {
+          utils.writeQiniuErrorLog('修改店铺logo图，单个删除过程失败，err: ' + err)
+        }
+      })
+    }
+  }
+  delete reqBody.origin_logo
+  var location, longitude, longitude
+  if (reqBody.location && typeof(reqBody.location) === 'string') {
+    location = reqBody.location.split(',')
+    longitude = parseFloat(location[0])
+    latitude = parseFloat(location[1])
+  }
+  reqBody.location = [longitude, latitude]
+  MerchantShop.findOneAndUpdate({ _id: _id }, reqBody)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: '店铺修改成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '店铺修改失败',
+        err: err.toString()
+      })
     })
 })
 
@@ -637,6 +847,43 @@ router.get('/goods_categories', function (req, res, next) {
     })
 })
 
+router.get('/category_detail', function (req, res, next) {
+  var _id = req.query._id;
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数'
+    })
+  }
+  GoodsCategory.findOne({ _id })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '分类不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '获取分类详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取分类详情出错',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/category_edit', function (req, res, next) {
+  res.json({
+    success: true
+  })
+})
+
 router.post('/goods_add', function (req, res, next) {
   var reqBody = req.body;
   var shopId = reqBody.shop_id;
@@ -728,7 +975,8 @@ router.post('/goods_add', function (req, res, next) {
 })
 
 router.get('/goods_list', function (req, res, next) {
-  ShopGoods.find({ shop_id: req.query.shop_id }).populate([{
+  var queryOptions = req.query.shop_id ? { shop_id: req.query.shop_id } : {}
+  ShopGoods.find(queryOptions).populate([{
     path: 'merchant_id'
   }, {
     path: 'shop_id'

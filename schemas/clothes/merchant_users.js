@@ -28,10 +28,11 @@ module.exports = new mongoose.Schema({
   email: {
     type: String
   },
-  created_ts: {
-    type: Number,
-    default: Date.now()
+  email_verified: {
+    type: Boolean,
+    default: false
   }
 }, {
-  versionKey: false // 去掉__v字段
+  versionKey: false, // 去掉__v字段
+  timestamps: true // 添加创建时间和更新时间
 })

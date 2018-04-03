@@ -38,11 +38,8 @@ module.exports = new mongoose.Schema({
   },
   remark: {
     type: String
-  },
-  created_ts: {
-    type: Number,
-    default: Date.now()
   }
 }, {
-  versionKey: false // 去掉__v字段
+  versionKey: false, // 去掉__v字段
+  timestamps: true // 添加创建时间和更新时间
 })

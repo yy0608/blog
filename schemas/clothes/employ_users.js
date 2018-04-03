@@ -15,5 +15,6 @@ module.exports = new mongoose.Schema({
     required: true
   }
 }, {
-  versionKey: false // 去掉__v字段
+  versionKey: false, // 去掉__v字段
+  timestamps: true // 添加创建时间和更新时间
 })

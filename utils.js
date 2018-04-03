@@ -76,6 +76,30 @@ var utils = {
       }
     })
   },
+  resourceMove: function (params) { // 资源移动
+    var srcKey = params.srcKey;
+    var destKey = params.destKey;
+
+    if (!srcKey || !destKey) {
+      return params.error && params.error('缺少参数或参数错误')
+    }
+
+    var srcBucket = params.srcBucket || config.qiniuConfig.default_bucket;
+    var destBucket = params.destBucket || config.qiniuConfig.default_bucket;
+
+    this.qiniuObj.bucketManager = this.qiniuObj.bucketManager || this.generateBucketManager();
+
+    this.qiniuObj.bucketManager.move(srcBucket, srcKey, destBucket, destKey, { force: !!params.force }, function (err, respBody, respInfo) {
+      if (err) {
+        return params.error && params.error('资源移动失败')
+      }
+      if (respInfo.statusCode === 200) {
+        params.success && params.success('资源移动成功')
+      } else {
+        params.error && params.error(respInfo.data.error)
+      }
+    })
+  },
   resourceMoveBatch: function (params) { // 资源批量移动
     var srcKeys = params.srcKeys;
     var destDirname = params.destDirname;
