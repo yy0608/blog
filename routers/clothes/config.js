@@ -15,6 +15,7 @@ module.exports = {
     default_bucket: 'wusuowei',
     imgOrigin: 'http://img.wsweat.cn/',
     shopLogoDirname: 'clothes/shop/logo/',
+    categoryIconDirname: 'clothes/category/icon/',
     goodsFigureDirname: 'clothes/goods/figure/',
     goodsDetailDirname: 'clothes/goods/detail/',
     uploadUrl: 'https://upload-z2.qiniup.com', // 华南地址

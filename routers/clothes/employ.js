@@ -495,7 +495,7 @@ router.post('/shop_add', function (req, res, next) {
   }
   reqBody.location = [longitude, latitude]
 
-  var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.logo)
+  var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.logo);
   var originKey = reqBody.logo;
   var filename = undefined;
   var destKey = undefined;
@@ -771,7 +771,7 @@ router.post('/category_add', function (req, res, next) {
   var reqBody = req.body;
   var name = reqBody.name;
   var desc = reqBody.desc;
-  var icon = reqBody.icon;
+  var icon = reqBody.icon ? reqBody.icon : '';
   var level = reqBody.parent.length + 1;
   var parentId = reqBody.parent[reqBody.parent.length - 1];
 
@@ -785,6 +785,16 @@ router.post('/category_add', function (req, res, next) {
         msg: '该级分类下已存在相同名称'
       })
     } else {
+      var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.icon);
+      var originKey = reqBody.icon;
+      var filename = undefined;
+      var destKey = undefined;
+      if (icon && !isWebUrl) {
+        filename = reqBody.icon.split('/')[reqBody.icon.split('/').length - 1];
+        destKey = config.qiniuConfig.categoryIconDirname + filename;
+        icon = destKey;
+      }
+
       var goodsCategory = undefined;
       if (parentId) {
         goodsCategory = new GoodsCategory({
@@ -810,6 +820,17 @@ router.post('/category_add', function (req, res, next) {
             success: true,
             msg: '添加分类成功'
           })
+
+          if (icon && !isWebUrl) { // 如果是上传到七牛的，移动图片
+            utils.resourceMove({
+              srcKey: originKey,
+              destKey: destKey,
+              error: function (err) {
+                utils.writeQiniuErrorLog('单个移动分类icon出错，err: ' + err)
+              }
+            })
+          }
+
         })
         .catch(err => {
           res.json({
@@ -831,8 +852,14 @@ router.post('/category_add', function (req, res, next) {
 router.get('/goods_categories', function (req, res, next) {
   var reqQuery = req.query;
   var level = reqQuery.level;
+  var sort = null;
+  try {
+    sort = JSON.parse(reqQuery.sort);
+  } catch (e) {
+    sort = { createdAt: 1 };
+  }
   var conditions = level ? { level: level } : {};
-  GoodsCategory.find(conditions)
+  GoodsCategory.find(conditions).sort(sort)
     .then(data => {
       res.json({
         success: true,
@@ -879,9 +906,57 @@ router.get('/category_detail', function (req, res, next) {
 })
 
 router.post('/category_edit', function (req, res, next) {
-  res.json({
-    success: true
-  })
+  var reqBody = req.body;
+  var _id = reqBody._id;
+  if (!_id || Object.keys(reqBody).length < 3) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+  delete reqBody._id
+  if (reqBody.icon && reqBody.icon !== reqBody.origin_icon) {
+    var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.icon);
+    var originKey = reqBody.icon;
+    var filename = undefined;
+    var destKey = undefined;
+    if (!isWebUrl) {
+      utils.resourceDelete({ // 删除icon
+        key: reqBody.origin_icon,
+        success: function (res) {
+          filename = reqBody.icon.split('/')[reqBody.icon.split('/').length - 1];
+          destKey = config.qiniuConfig.categoryIconDirname + filename;
+          reqBody.icon = destKey
+
+          utils.resourceMove({ // 移动logo
+            srcKey: originKey,
+            destKey: destKey,
+            error: function (err) {
+              utils.writeQiniuErrorLog('修改店铺logo图，单个移动过程失败，err: ' + err)
+            }
+          })
+        },
+        error: function (err) {
+          utils.writeQiniuErrorLog('修改店铺logo图，单个删除过程失败，err: ' + err)
+        }
+      })
+    }
+  }
+  delete reqBody.origin_icon
+  GoodsCategory.findOneAndUpdate({ _id: _id }, reqBody)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: '分类修改成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '分类修改失败',
+        err: err.toString()
+      })
+    })
 })
 
 router.post('/goods_add', function (req, res, next) {
