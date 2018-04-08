@@ -43,6 +43,11 @@ var utils = {
       return b.includes(v)
     })
   },
+  getDifference: function (a, b) { // 数组差集
+    return a.concat(b).filter(function (v) {
+      return !a.includes(v) || !b.includes(v)
+    })
+  },
   writeQiniuErrorLog: function (msg) {
 
     var filepath = __dirname + '/logs/qiniu_error.log';
@@ -73,6 +78,41 @@ var utils = {
         params.error && params.error(err)
       } else {
         params.success && params.success('资源删除成功')
+      }
+    })
+  },
+  resourceDeleteBatch: function (params) {
+    var keys = params.keys;
+    if (!keys || !keys.length || !(keys instanceof Array)) {
+      return params.error && params.error('缺少参数或参数错误')
+    }
+
+    var deleteOperations = [];
+    keys.forEach(function (item, index, arr) {
+      deleteOperations.push(qiniu.rs.deleteOp(config.qiniuConfig.default_bucket, item));
+    });
+
+    this.qiniuObj.bucketManager = this.qiniuObj.bucketManager || this.generateBucketManager();
+    this.qiniuObj.bucketManager.batch(deleteOperations, function(err, respBody, respInfo) {
+      if (err) {
+        return params.error && params.error(err)
+      }
+
+      if (parseInt(respInfo.statusCode / 100) === 2) {
+        var successNum = 0;
+        // var successKyes = [];
+        respBody.forEach(function (item) {
+          if (item.code === 200) {
+            successNum++
+          }
+        })
+        if (successNum === keys.length) {
+          params.success && params.success(keys.length + '张全部批量删除成功')
+        } else {
+          params.success && params.success('总数' + keys.length + '，成功' + successNum)
+        }
+      } else {
+        params.error && params.error(respInfo.data.error)
       }
     })
   },

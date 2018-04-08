@@ -1074,14 +1074,134 @@ router.get('/goods_list', function (req, res, next) {
     })
 })
 
-// utils.resourceDelete({
-//   key: 'cache/icon_test/1c8c3ce7-11cd-4cb0-8ec1-a19fc4beda5e.jpg',
-//   error: function (err) {
-//     console.log(err)
-//   },
-//   success: function (res) {
-//     console.log(res)
-//   }
-// })
+router.get('/goods_detail', function (req, res, next) {
+  var _id = req.query._id
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+  ShopGoods.findOne({ _id: _id }).populate({ path: 'category_id' })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '获取商品详情失败，商品不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '获取商品详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商品详情失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/goods_edit', function (req, res, next) {
+  var reqBody = req.body;
+  var _id = reqBody.goods_id;
+  var title = reqBody.title;
+  var valuation = reqBody.valuation;
+  var figureImgs = reqBody.figure_imgs;
+  var detailImgs = reqBody.detail_imgs;
+  var originFigureImgs = reqBody.origin_figure_imgs;
+  var originDetailImgs = reqBody.origin_detail_imgs;
+
+  if (!_id || !title || !valuation || !figureImgs || !detailImgs || !originFigureImgs || !originDetailImgs) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var figureImgsInter = utils.getIntersection(figureImgs, originFigureImgs)
+  var detailImgsInter = utils.getIntersection(detailImgs, originDetailImgs)
+
+  var figureImgsDelete = utils.getDifference(originFigureImgs, figureImgsInter)
+  var figureImgsMove = utils.getDifference(figureImgs, figureImgsInter)
+
+  var detailImgsDelete = utils.getDifference(originDetailImgs, detailImgsInter)
+  var detailImgsMove = utils.getDifference(detailImgs, detailImgsInter)
+
+  var deleteImgs = figureImgsDelete.concat(detailImgsDelete)
+  var moveImgs = figureImgsMove.concat(detailImgsMove)
+
+  // 商品轮播图部分
+  var goodsFigureDirname = config.qiniuConfig.goodsFigureDirname;
+  var movedFigureImgs = [];
+  figureImgs.forEach(function (item, index, arr) {
+    var filename = item.split('/')[item.split('/').length - 1]
+    movedFigureImgs.push(goodsFigureDirname + filename);
+  })
+
+  // 商品详情图部分
+  var goodsDetailDirname = config.qiniuConfig.goodsDetailDirname;
+  var movedDetailImgs = [];
+  detailImgs.forEach(function (item, index, arr) {
+    var filename = item.split('/')[item.split('/').length - 1]
+    movedDetailImgs.push(goodsDetailDirname + filename);
+  })
+
+  ShopGoods.update({ _id: _id }, {
+    title: title,
+    valuation: valuation,
+    figure_imgs: figureImgs,
+    detail_imgs: detailImgs
+  })
+    .then(() => {
+      res.json({
+        success: true,
+        msg: '修改商品成功'
+      })
+      if (deleteImgs.length) { // 删除图片
+        utils.resourceDeleteBatch({
+          keys: deleteImgs,
+          success: function (res) {
+            console.log(res + '批量删除成功')
+          },
+          error: function (err) {
+            utils.writeQiniuErrorLog('修改商品时批量删除图片失败，err: ' + err)
+          }
+        })
+      }
+      if (moveImgs.length) { // 移动图片，待修改
+        utils.resourceMoveBatch({
+          srcKeys: moveImgs,
+          destDirname: goodsFigureDirname,
+          success: function (res) {
+            console.log(res + '批量移动成功')
+          },
+          error: function (err) {
+            utils.writeQiniuErrorLog('修改商品时批量移动图片时失败，err: ' + err)
+          }
+        })
+      }
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '修改商品失败',
+        err: err.toString()
+      })
+    })
+
+  res.json({
+    success: true,
+    msg: '商品修改成功',
+    figureImgsDelete,
+    detailImgsDelete,
+    figureImgsMove,
+    detailImgsMove,
+    data: reqBody
+  })
+})
 
 module.exports = router
