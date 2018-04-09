@@ -162,7 +162,7 @@ router.post('/user_add', function (req, res, next) {
     })
 })
 
-router.post('/delete', function (req, res, next) {
+router.post('/user_delete', function (req, res, next) {
   var reqBody = req.body;
   var _id = reqBody._id && reqBody._id.trim();
   if (!_id) {
@@ -190,18 +190,18 @@ router.post('/delete', function (req, res, next) {
   }
 })
 
-router.get('/list', function (req, res, next) {
-  EmployUser.find()
+router.get('/user_list', function (req, res, next) {
+  EmployUser.find({}, { password: 0 })
     .then(data => {
       res.json({
         success: true,
         msg: '查询用户列表成功',
-        list: data
+        data: data
       })
     })
     .catch(err => {
       res.json({
-        success: true,
+        success: false,
         msg: '查询用户列表失败',
         err: err
       })
@@ -1132,12 +1132,11 @@ router.post('/goods_edit', function (req, res, next) {
   var detailImgsMove = utils.getDifference(detailImgs, detailImgsInter)
 
   var deleteImgs = figureImgsDelete.concat(detailImgsDelete)
-  var moveImgs = figureImgsMove.concat(detailImgsMove)
 
   // 商品轮播图部分
   var goodsFigureDirname = config.qiniuConfig.goodsFigureDirname;
   var movedFigureImgs = [];
-  figureImgs.forEach(function (item, index, arr) {
+  figureImgsMove.forEach(function (item, index, arr) {
     var filename = item.split('/')[item.split('/').length - 1]
     movedFigureImgs.push(goodsFigureDirname + filename);
   })
@@ -1145,7 +1144,7 @@ router.post('/goods_edit', function (req, res, next) {
   // 商品详情图部分
   var goodsDetailDirname = config.qiniuConfig.goodsDetailDirname;
   var movedDetailImgs = [];
-  detailImgs.forEach(function (item, index, arr) {
+  detailImgsMove.forEach(function (item, index, arr) {
     var filename = item.split('/')[item.split('/').length - 1]
     movedDetailImgs.push(goodsDetailDirname + filename);
   })
@@ -1153,8 +1152,8 @@ router.post('/goods_edit', function (req, res, next) {
   ShopGoods.update({ _id: _id }, {
     title: title,
     valuation: valuation,
-    figure_imgs: figureImgs,
-    detail_imgs: detailImgs
+    figure_imgs: utils.changeQiniuFilename(figureImgs, goodsFigureDirname),
+    detail_imgs: utils.changeQiniuFilename(detailImgs, goodsDetailDirname)
   })
     .then(() => {
       res.json({
@@ -1164,21 +1163,24 @@ router.post('/goods_edit', function (req, res, next) {
       if (deleteImgs.length) { // 删除图片
         utils.resourceDeleteBatch({
           keys: deleteImgs,
-          success: function (res) {
-            console.log(res + '批量删除成功')
-          },
           error: function (err) {
             utils.writeQiniuErrorLog('修改商品时批量删除图片失败，err: ' + err)
           }
         })
       }
-      if (moveImgs.length) { // 移动图片，待修改
+      if (figureImgsMove.length) { // 移动图片
         utils.resourceMoveBatch({
-          srcKeys: moveImgs,
+          srcKeys: figureImgsMove,
           destDirname: goodsFigureDirname,
-          success: function (res) {
-            console.log(res + '批量移动成功')
-          },
+          error: function (err) {
+            utils.writeQiniuErrorLog('修改商品时批量移动图片时失败，err: ' + err)
+          }
+        })
+      }
+      if (detailImgsMove.length) { // 移动图片
+        utils.resourceMoveBatch({
+          srcKeys: detailImgsMove,
+          destDirname: goodsDetailDirname,
           error: function (err) {
             utils.writeQiniuErrorLog('修改商品时批量移动图片时失败，err: ' + err)
           }
@@ -1186,22 +1188,13 @@ router.post('/goods_edit', function (req, res, next) {
       }
     })
     .catch(err => {
+      console.log(err)
       res.json({
         success: false,
         msg: '修改商品失败',
         err: err.toString()
       })
     })
-
-  res.json({
-    success: true,
-    msg: '商品修改成功',
-    figureImgsDelete,
-    detailImgsDelete,
-    figureImgsMove,
-    detailImgsMove,
-    data: reqBody
-  })
 })
 
 module.exports = router
