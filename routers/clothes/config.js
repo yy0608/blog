@@ -18,6 +18,7 @@ module.exports = {
     categoryIconDirname: 'clothes/category/icon/',
     goodsFigureDirname: 'clothes/goods/figure/',
     goodsDetailDirname: 'clothes/goods/detail/',
+    topicDirname: 'clothes/topic/',
     uploadUrl: 'https://upload-z2.qiniup.com', // 华南地址
     access_key: 'QimXTd2UT59EgNfZuEJ2_27gEwHRCSmw5sW_sO9u',
     secret_key: 'wOQyg5FpX8OFsyRsnQRtHteoqMPSEwWbatY99IaO'

@@ -13,6 +13,7 @@ var MerchantUser = require('../../models/clothes/MerchantUser.js');
 var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var GoodsCategory = require('../../models/clothes/GoodsCategory.js');
 var ShopGoods = require('../../models/clothes/ShopGoods.js');
+var Topic = require('../../models/clothes/Topic.js');
 
 var utils = require('../../utils.js');
 var config = require('./config.js');
@@ -1192,6 +1193,88 @@ router.post('/goods_edit', function (req, res, next) {
       res.json({
         success: false,
         msg: '修改商品失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/topic_add', function (req, res, next) {
+  var reqBody = req.body;
+  var title = reqBody.title;
+  var content = reqBody.content;
+  var authorId = reqBody.author_id;
+
+  if (!title || !content || !authorId || !(content instanceof Array)) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var moveTopicImgs = [];
+  var topicDirname = config.qiniuConfig.topicDirname;
+  for (var i = 0; i < content.length; i++) { // type: 1为文字，2为图片
+    if (content[i].type === 2) {
+      var tempMoveImgs = [];
+      content[i].value.forEach(function (item, index, arr) {
+        var filename = item.split('/')[item.split('/').length - 1]
+        tempMoveImgs.push(topicDirname + filename);
+        moveTopicImgs = moveTopicImgs.concat([ ...content[i].value ]);
+        content[i].value = tempMoveImgs;
+      })
+    }
+  }
+
+  return
+
+  var topic = new Topic({
+    title: title,
+    content: content,
+    author_id: authorId
+  })
+
+  topic.save()
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '帖子添加成功',
+        data: {
+          _id: data._id
+        }
+      })
+
+      if (!moveTopicImgs.length) return;
+
+      utils.resourceMoveBatch({
+        srcKeys: moveTopicImgs,
+        destDirname: topicDirname,
+        error: function (err) {
+          utils.writeQiniuErrorLog('批量移动帖子图片失败，err: ' + err)
+        }
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '帖子添加失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.get('/topic_list', function (req, res, next) {
+  Topic.find().populate({ path: 'author_id' })
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取帖子列表成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取帖子列表失败',
         err: err.toString()
       })
     })
