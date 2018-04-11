@@ -1213,19 +1213,18 @@ router.post('/topic_add', function (req, res, next) {
 
   var moveTopicImgs = [];
   var topicDirname = config.qiniuConfig.topicDirname;
+
   for (var i = 0; i < content.length; i++) { // type: 1为文字，2为图片
     if (content[i].type === 2) {
       var tempMoveImgs = [];
+      moveTopicImgs = moveTopicImgs.concat(content[i].value);
       content[i].value.forEach(function (item, index, arr) {
         var filename = item.split('/')[item.split('/').length - 1]
         tempMoveImgs.push(topicDirname + filename);
-        moveTopicImgs = moveTopicImgs.concat([ ...content[i].value ]);
         content[i].value = tempMoveImgs;
       })
     }
   }
-
-  return
 
   var topic = new Topic({
     title: title,
@@ -1263,7 +1262,7 @@ router.post('/topic_add', function (req, res, next) {
 })
 
 router.get('/topic_list', function (req, res, next) {
-  Topic.find().populate({ path: 'author_id' })
+  Topic.find().populate({ path: 'author_id', select: { name: 1, _id: 0 } })
     .then(data => {
       res.json({
         success: true,
