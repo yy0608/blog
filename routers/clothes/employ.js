@@ -1261,22 +1261,4 @@ router.post('/topic_add', function (req, res, next) {
     })
 })
 
-router.get('/topic_list', function (req, res, next) {
-  Topic.find().populate({ path: 'author_id', select: { name: 1, _id: 0 } })
-    .then(data => {
-      res.json({
-        success: true,
-        msg: '获取帖子列表成功',
-        data: data
-      })
-    })
-    .catch(err => {
-      res.json({
-        success: false,
-        msg: '获取帖子列表失败',
-        err: err.toString()
-      })
-    })
-})
-
 module.exports = router
