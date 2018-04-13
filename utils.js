@@ -21,6 +21,13 @@ var utils = {
       return year + '-' + this.tenParse(month) + '-' + this.tenParse(day) + ' ' + this.tenParse(hour) + ':' + this.tenParse(minute) + ':' + this.tenParse(second)
     }
   },
+  generateGuid: function () {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      var r = Math.random() * 16 | 0
+      var v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
+  },
   randomWord: function(randomFlag, min, max) {
     // 生成3-32位随机串：randomWord(true, 3, 32)
     // 生成43位随机串：randomWord(false, 43)

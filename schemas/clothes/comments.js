@@ -1,21 +1,23 @@
-var mongoose = require('mongoose');
+var mongoose = require('mongoose')
 
 module.exports = new mongoose.Schema({
+  topic_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic',
+    required: true
+  },
   author_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployUser',
+    ref: 'User',
     required: true
   },
-  title: {
+  comment: {
     type: String,
-    required: true
+    require: true
   },
-  content: {
-    type: [{}]
-  },
-  view_count: {
+  created_ts: {
     type: Number,
-    default: 0
+    default: Date.now()
   }
 }, {
   versionKey: false, // 去掉__v字段
