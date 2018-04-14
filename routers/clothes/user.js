@@ -166,7 +166,9 @@ router.post('/check_login', function (req, res, next) {
 })
 
 router.get('/user_list', function (req, res, next) {
-  User.find()
+  var findAdmin = req.query.find_admin;
+  var findOptions = findAdmin ? { is_admin: true } : {}
+  User.find(findOptions)
     .then(data => {
       res.json({
         success: true,
@@ -184,7 +186,7 @@ router.get('/user_list', function (req, res, next) {
 })
 
 router.get('/topic_list', function (req, res, next) {
-  Topic.find().sort({ updatedAt: -1 }).populate({ path: 'author_id', select: { name: 1, _id: 0 } })
+  Topic.find({ status: -1 }).sort({ createdAt: -1 }).populate({ path: 'author_id', select: { username: 1, _id: 0 } })
     .then(data => {
       res.json({
         success: true,
@@ -202,7 +204,7 @@ router.get('/topic_list', function (req, res, next) {
 })
 
 router.get('/topic_detail', function (req, res, next) {
-  var _id = req.query._id
+  var _id = req.query._id;
 
   if (!_id) {
     return res.json({
@@ -213,11 +215,22 @@ router.get('/topic_detail', function (req, res, next) {
 
   Topic.findOne({ _id: _id })
     .then(data => {
-      res.json({
-        success: true,
-        msg: '获取帖子详情成功',
-        data: data
-      })
+      var viewCount = data.view_count + 1;
+      Topic.findOneAndUpdate({ _id: _id }, { view_count: viewCount })
+        .then(() => {
+          res.json({ // 获取帖子详情成功，更新浏览量成功
+            success: true,
+            msg: '获取帖子详情成功',
+            data: data
+          })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '获取帖子详情成功，但更新浏览量失败',
+            err: err.toString()
+          })
+        })
     })
     .catch(err => {
       res.json({

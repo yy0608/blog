@@ -3,7 +3,7 @@ var mongoose = require('mongoose');
 module.exports = new mongoose.Schema({
   author_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'EmployUser',
+    ref: 'User',
     required: true
   },
   title: {
@@ -13,7 +13,15 @@ module.exports = new mongoose.Schema({
   content: {
     type: [{}]
   },
-  view_count: {
+  status: { // -2：需要再次审核，-1：未审核，0：审核通过，1：水贴，2：广告，3：涉黄，4：暴力
+    type: Number,
+    default: -1
+  },
+  view_count: { // 浏览量
+    type: Number,
+    default: 0
+  },
+  like_count: { // 点赞量
     type: Number,
     default: 0
   }

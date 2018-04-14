@@ -4,7 +4,7 @@ var session = require('express-session');
 var axios = require('axios');
 var crypto = require('crypto');
 var CaptchaSDK = require('dx-captcha-sdk')
-var QcloudSms = require("qcloudsms_js") // ÌÚÑ¶ÔÆ¶ÌĞÅ·şÎñ
+var QcloudSms = require("qcloudsms_js") // è…¾è®¯äº‘çŸ­ä¿¡æœåŠ¡
 
 var RedisStore = require('connect-redis')(session);
 
@@ -24,17 +24,17 @@ var accessKey = undefined, secretKey = undefined, mac = undefined, resourceConfi
 
 router.use(session({
   secret: 'clothes_session',
-  name: 'leave-me-alone', // ÁôÔÚÊ×Ò³µÄcookieÃû³Æ
+  name: 'leave-me-alone', // ç•™åœ¨é¦–é¡µçš„cookieåç§°
   store: new RedisStore({
     client: global.redisClient,
     // host: 'localhost',
     // port: 6379
   }),
   cookie: {
-    maxAge: 60 * 60 * 1000 // Ò»Ğ¡Ê±
+    maxAge: 60 * 60 * 1000 // ä¸€å°æ—¶
   },
-  resave: true, // :(ÊÇ·ñÔÊĞí)µ±¿Í»§¶Ë²¢ĞĞ·¢ËÍ¶à¸öÇëÇóÊ±£¬ÆäÖĞÒ»¸öÇëÇóÔÚÁíÒ»¸öÇëÇó½áÊøÊ±¶Ôsession½øĞĞĞŞ¸Ä¸²¸Ç²¢±£´æ¡£Èç¹ûÉèÖÃfalse£¬¿ÉÒÔÊ¹ÓÃ.touch·½·¨£¬±ÜÃâÔÚ»î¶¯ÖĞµÄsessionÊ§Ğ§¡£
-  saveUninitialized: false // ³õÊ¼»¯sessionÊ±ÊÇ·ñ±£´æµ½´æ´¢
+  resave: true, // :(æ˜¯å¦å…è®¸)å½“å®¢æˆ·ç«¯å¹¶è¡Œå‘é€å¤šä¸ªè¯·æ±‚æ—¶ï¼Œå…¶ä¸­ä¸€ä¸ªè¯·æ±‚åœ¨å¦ä¸€ä¸ªè¯·æ±‚ç»“æŸæ—¶å¯¹sessionè¿›è¡Œä¿®æ”¹è¦†ç›–å¹¶ä¿å­˜ã€‚å¦‚æœè®¾ç½®falseï¼Œå¯ä»¥ä½¿ç”¨.touchæ–¹æ³•ï¼Œé¿å…åœ¨æ´»åŠ¨ä¸­çš„sessionå¤±æ•ˆã€‚
+  saveUninitialized: false // åˆå§‹åŒ–sessionæ—¶æ˜¯å¦ä¿å­˜åˆ°å­˜å‚¨
 }))
 
 router.post('/login', function (req, res, next) {
@@ -45,13 +45,13 @@ router.post('/login', function (req, res, next) {
       userInfo = JSON.parse(req.session.userInfo)
       res.json({
         success: true,
-        msg: 'µÇÂ¼×´Ì¬ÓĞĞ§',
+        msg: 'ç™»å½•çŠ¶æ€æœ‰æ•ˆ',
         user_info: userInfo
       })
     } catch (e) {
       res.json({
         success: false,
-        msg: '½âÎö´íÎó'
+        msg: 'è§£æé”™è¯¯'
       })
     }
     return
@@ -63,7 +63,7 @@ router.post('/login', function (req, res, next) {
   if (!username || !password || !dxToken) {
     res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»òsessionÒÑ¹ıÆÚ'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–sessionå·²è¿‡æœŸ'
     })
     return
   }
@@ -82,20 +82,20 @@ router.post('/login', function (req, res, next) {
             req.session.userInfo = JSON.stringify(data)
             res.json({
               success: true,
-              msg: 'µÇÂ¼³É¹¦',
+              msg: 'ç™»å½•æˆåŠŸ',
               user_info: data
             })
-          } else { // ÓÃ»§²»´æÔÚ
+          } else { // ç”¨æˆ·ä¸å­˜åœ¨
             res.json({
               success: false,
-              msg: 'ÓÃ»§Ãû»òÃÜÂë´íÎó'
+              msg: 'ç”¨æˆ·åæˆ–å¯†ç é”™è¯¯'
             })
           }
         })
         .catch(err => {
           res.json({
             success: false,
-            msg: 'µÇÂ¼Ê§°Ü',
+            msg: 'ç™»å½•å¤±è´¥',
             err: err
           })
         })
@@ -103,7 +103,7 @@ router.post('/login', function (req, res, next) {
       res.json({
         success: false,
         code: 10001,
-        msg: 'ÑéÖ¤Âë´íÎó»òÊ§Ğ§£¬ÇëÖØĞÂÑéÖ¤',
+        msg: 'éªŒè¯ç é”™è¯¯æˆ–å¤±æ•ˆï¼Œè¯·é‡æ–°éªŒè¯',
         err_msg: err
       })
     })
@@ -113,7 +113,7 @@ router.post('/logout', function (req, res, next) {
   req.session.userInfo = '';
   res.json({
     success: true,
-    msg: 'ÍË³ö³É¹¦'
+    msg: 'é€€å‡ºæˆåŠŸ'
   })
 })
 
@@ -125,7 +125,7 @@ router.post('/merchant_user_add', function (req, res, next) {
   if (!username || !password || !name) {
     res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı'
+      msg: 'ç¼ºå°‘å‚æ•°'
     })
     return
   }
@@ -136,7 +136,7 @@ router.post('/merchant_user_add', function (req, res, next) {
       if (data) {
         res.json({
           success: false,
-          msg: 'ÓÃ»§ÒÑ´æÔÚ'
+          msg: 'ç”¨æˆ·å·²å­˜åœ¨'
         })
       } else {
         var hash = crypto.createHash('md5');
@@ -150,13 +150,13 @@ router.post('/merchant_user_add', function (req, res, next) {
           .then(() => {
             res.json({
               success: true,
-              msg: 'Ìí¼ÓÓÃ»§³É¹¦'
+              msg: 'æ·»åŠ ç”¨æˆ·æˆåŠŸ'
             })
           })
           .catch(err => {
             res.json({
               success: false,
-              msg: 'Ìí¼ÓÓÃ»§Ê§°Ü',
+              msg: 'æ·»åŠ ç”¨æˆ·å¤±è´¥',
               err: err
             })
           })
@@ -170,7 +170,7 @@ router.post('/user_delete', function (req, res, next) {
   if (!_id) {
     res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı'
+      msg: 'ç¼ºå°‘å‚æ•°'
     })
   } else {
     EmployUser.remove({
@@ -179,13 +179,13 @@ router.post('/user_delete', function (req, res, next) {
       .then(data => {
         res.json({
           success: true,
-          msg: 'É¾³ıÓÃ»§³É¹¦'
+          msg: 'åˆ é™¤ç”¨æˆ·æˆåŠŸ'
         })
       })
       .catch(err => {
         res.json({
           success: false,
-          msg: 'É¾³ıÓÃ»§Ê§°Ü',
+          msg: 'åˆ é™¤ç”¨æˆ·å¤±è´¥',
           err: err
         })
       })
@@ -197,26 +197,26 @@ router.get('/user_list', function (req, res, next) {
     .then(data => {
       res.json({
         success: true,
-        msg: '²éÑ¯ÓÃ»§ÁĞ±í³É¹¦',
+        msg: 'æŸ¥è¯¢ç”¨æˆ·åˆ—è¡¨æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '²éÑ¯ÓÃ»§ÁĞ±íÊ§°Ü',
+        msg: 'æŸ¥è¯¢ç”¨æˆ·åˆ—è¡¨å¤±è´¥',
         err: err
       })
     })
 })
 
-router.post('/add_merchant_sms', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÊ±·¢ËÍ¶ÌĞÅÑéÖ¤Âë
+router.post('/add_merchant_sms', function (req, res, next) { // æ·»åŠ å•†å®¶æ—¶å‘é€çŸ­ä¿¡éªŒè¯ç 
   var reqBody = req.body
   var phone = reqBody.phone
   if (!(/^1[34578]\d{9}$/.test(phone))) {
     res.json({
       success: false,
-      msg: 'ÊÖ»úºÅ´íÎó'
+      msg: 'æ‰‹æœºå·é”™è¯¯'
     })
     return
   }
@@ -229,27 +229,27 @@ router.post('/add_merchant_sms', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÊ±·¢ËÍ¶Ì
   // })
   // res.json({
   //   success: true,
-  //   msg: '¶ÌĞÅ·¢ËÍ³É¹¦'
+  //   msg: 'çŸ­ä¿¡å‘é€æˆåŠŸ'
   // })
   // return;
 
   var smsConfig = config.smsConfig;
   var qcloudsms = QcloudSms(smsConfig.appid, smsConfig.appkey)
   var code = Math.random().toString().substr(2, 6)
-  ssender = ssender || qcloudsms.SmsSingleSender() // µ¥·¢¶ÌĞÅ
-  // ssender = ssender || qcloudsms.SmsMultiSender() // Èº·¢¶ÌĞÅ
-  ssender.send(smsConfig.smsType, 86, phone, code + " ÎªÄúµÄµÇÂ¼ÑéÖ¤Âë£¬ÇëÓÚ 2 ·ÖÖÓÄÚÌîĞ´¡£Èç·Ç±¾ÈË²Ù×÷£¬ÇëºöÂÔ±¾¶ÌĞÅ¡£", "", "", function (err, response, resData) {
+  ssender = ssender || qcloudsms.SmsSingleSender() // å•å‘çŸ­ä¿¡
+  // ssender = ssender || qcloudsms.SmsMultiSender() // ç¾¤å‘çŸ­ä¿¡
+  ssender.send(smsConfig.smsType, 86, phone, code + " ä¸ºæ‚¨çš„ç™»å½•éªŒè¯ç ï¼Œè¯·äº 2 åˆ†é’Ÿå†…å¡«å†™ã€‚å¦‚éæœ¬äººæ“ä½œï¼Œè¯·å¿½ç•¥æœ¬çŸ­ä¿¡ã€‚", "", "", function (err, response, resData) {
     if (err) {
       res.json({
         success: false,
-        msg: '¶ÌĞÅ·¢ËÍÊ§°Ü',
+        msg: 'çŸ­ä¿¡å‘é€å¤±è´¥',
         err: err
       })
     } else {
       if (resData.result) {
         res.json({
           success: false,
-          msg: '¶ÌĞÅ·¢ËÍÊ§°Ü',
+          msg: 'çŸ­ä¿¡å‘é€å¤±è´¥',
           err: resData
         })
       } else {
@@ -258,7 +258,7 @@ router.post('/add_merchant_sms', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÊ±·¢ËÍ¶Ì
         })
         res.json({
           success: true,
-          msg: '¶ÌĞÅ·¢ËÍ³É¹¦',
+          msg: 'çŸ­ä¿¡å‘é€æˆåŠŸ',
           data: resData
         })
       }
@@ -266,7 +266,7 @@ router.post('/add_merchant_sms', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÊ±·¢ËÍ¶Ì
   });
 })
 
-router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
+router.post('/merchant_add', function (req, res, next) { // æ·»åŠ å•†å®¶è´¦å·
   var reqBody = req.body;
   var phone = reqBody.phone && reqBody.phone.trim();
   var manager = reqBody.manager;
@@ -279,7 +279,7 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
   if (!(/^1[34578]\d{9}$/.test(phone)) || !manager || !email || !name || !address || !code) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
@@ -287,17 +287,17 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
     if (err) {
       res.json({
         success: false,
-        msg: 'redis´¦ÀíÒì³£'
+        msg: 'rediså¤„ç†å¼‚å¸¸'
       })
       return
     }
     if (v !== code) {
       res.json({
         success: false,
-        msg: '¶ÌĞÅÑéÖ¤Âë´íÎó»òÊ§Ğ§'
+        msg: 'çŸ­ä¿¡éªŒè¯ç é”™è¯¯æˆ–å¤±æ•ˆ'
       })
     } else {
-      redisClient.del(phone); // É¾³ı
+      redisClient.del(phone); // åˆ é™¤
       MerchantUser.findOne({
         phone: phone
       })
@@ -305,7 +305,7 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
           if (data) {
             res.json({
               success: false,
-              msg: 'ÊÖ»úºÅÒÑ×¢²á'
+              msg: 'æ‰‹æœºå·å·²æ³¨å†Œ'
             })
           } else {
             var password = utils.randomWord(true, 40, 43);
@@ -325,7 +325,7 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
               .then(() => {
                 res.json({
                   success: true,
-                  msg: 'Ìí¼Ó³É¹¦',
+                  msg: 'æ·»åŠ æˆåŠŸ',
                   data: {
                     phone: phone,
                     password: password
@@ -335,7 +335,7 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
               .catch(err => {
                 res.json({
                   success: false,
-                  msg: 'Ìí¼ÓÊ§°Ü',
+                  msg: 'æ·»åŠ å¤±è´¥',
                   err: err
                 })
               })
@@ -344,7 +344,7 @@ router.post('/merchant_add', function (req, res, next) { // Ìí¼ÓÉÌ¼ÒÕËºÅ
       .catch(err => {
         res.json({
           success: false,
-          msg: 'Êı¾İ¿â²éÑ¯³ö´í',
+          msg: 'æ•°æ®åº“æŸ¥è¯¢å‡ºé”™',
           err: err
         })
       })
@@ -357,7 +357,7 @@ router.get('/merchant_detail', function (req, res, next) {
   if (!_id) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
   MerchantUser.findOne({ _id: _id })
@@ -365,19 +365,19 @@ router.get('/merchant_detail', function (req, res, next) {
       if (!data) {
         return res.json({
           success: false,
-          msg: 'ÉÌ¼Ò²»´æÔÚ'
+          msg: 'å•†å®¶ä¸å­˜åœ¨'
         })
       }
       res.json({
         success: true,
-        msg: '»ñÈ¡ÉÌ¼ÒÏêÇé³É¹¦',
+        msg: 'è·å–å•†å®¶è¯¦æƒ…æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡ÉÌ¼ÒÏêÇéÊ§°Ü',
+        msg: 'è·å–å•†å®¶è¯¦æƒ…å¤±è´¥',
         err: err.toString()
       })
     })
@@ -395,7 +395,7 @@ router.get('/merchant_list', function (req, res, next) {
       if (!count) {
         res.json({
           success: true,
-          msg: '»ñÈ¡ÉÌ¼ÒÁĞ±í³É¹¦',
+          msg: 'è·å–å•†å®¶åˆ—è¡¨æˆåŠŸ',
           count: 0,
           data: []
         })
@@ -404,7 +404,7 @@ router.get('/merchant_list', function (req, res, next) {
           .then(data => {
             res.json({
               success: true,
-              msg: '»ñÈ¡ÉÌ¼ÒÁĞ±í³É¹¦',
+              msg: 'è·å–å•†å®¶åˆ—è¡¨æˆåŠŸ',
               count: count,
               data: data
             })
@@ -412,7 +412,7 @@ router.get('/merchant_list', function (req, res, next) {
           .catch(err => {
             res.json({
               success: false,
-              msg: '»ñÈ¡ÉÌ¼ÒÁĞ±íÊ§°Ü',
+              msg: 'è·å–å•†å®¶åˆ—è¡¨å¤±è´¥',
               err: err
             })
           })
@@ -421,7 +421,7 @@ router.get('/merchant_list', function (req, res, next) {
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡ÉÌ¼ÒÁĞ±í×ÜÌõÊıÊ§°Ü',
+        msg: 'è·å–å•†å®¶åˆ—è¡¨æ€»æ¡æ•°å¤±è´¥',
         err: err
       })
     })
@@ -441,7 +441,7 @@ router.post('/merchant_edit', function (req, res, next) {
   if (!_id || !(/^1[34578]\d{9}$/.test(phone)) || !manager || !email || !name || !address || !code) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
@@ -449,17 +449,17 @@ router.post('/merchant_edit', function (req, res, next) {
     if (err) {
       res.json({
         success: false,
-        msg: 'redis´¦ÀíÒì³£'
+        msg: 'rediså¤„ç†å¼‚å¸¸'
       })
       return
     }
     if (v !== code) {
       res.json({
         success: false,
-        msg: '¶ÌĞÅÑéÖ¤Âë´íÎó»òÊ§Ğ§'
+        msg: 'çŸ­ä¿¡éªŒè¯ç é”™è¯¯æˆ–å¤±æ•ˆ'
       })
     } else {
-      redisClient.del(phone); // É¾³ı
+      redisClient.del(phone); // åˆ é™¤
       // MerchantUser.update({ _id: _id }, {
       MerchantUser.findOneAndUpdate({ _id: _id }, {
         manager, email, name, address, desc
@@ -467,13 +467,13 @@ router.post('/merchant_edit', function (req, res, next) {
         .then(() => {
           res.json({
             success: true,
-            msg: 'ĞŞ¸ÄÉÌ¼ÒĞÅÏ¢³É¹¦'
+            msg: 'ä¿®æ”¹å•†å®¶ä¿¡æ¯æˆåŠŸ'
           })
         })
         .catch(err => {
           res.json({
             success: false,
-            msg: 'ĞŞ¸ÄÉÌ¼ÒĞÅÏ¢Ê§°Ü'
+            msg: 'ä¿®æ”¹å•†å®¶ä¿¡æ¯å¤±è´¥'
           })
         })
     }
@@ -491,7 +491,7 @@ router.post('/shop_add', function (req, res, next) {
   if (!reqBody.merchant_id || Object.keys(reqBody).length < 9 || isNaN(latitude) || isNaN(longitude)) {
     res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
     return
   }
@@ -512,14 +512,14 @@ router.post('/shop_add', function (req, res, next) {
     .then(() => {
       res.json({
         success: true,
-        msg: 'Ìí¼ÓµêÆÌ³É¹¦'
+        msg: 'æ·»åŠ åº—é“ºæˆåŠŸ'
       })
-      if (!isWebUrl) { // Èç¹ûÊÇÉÏ´«µ½ÆßÅ£µÄ£¬ÒÆ¶¯Í¼Æ¬
+      if (!isWebUrl) { // å¦‚æœæ˜¯ä¸Šä¼ åˆ°ä¸ƒç‰›çš„ï¼Œç§»åŠ¨å›¾ç‰‡
         utils.resourceMove({
           srcKey: originKey,
           destKey: destKey,
           error: function (err) {
-            utils.writeQiniuErrorLog('µ¥¸öÒÆ¶¯ÉÌÆ·logo³ö´í£¬err: ' + err)
+            utils.writeQiniuErrorLog('å•ä¸ªç§»åŠ¨å•†å“logoå‡ºé”™ï¼Œerr: ' + err)
           }
         })
       }
@@ -527,13 +527,13 @@ router.post('/shop_add', function (req, res, next) {
     .catch(err => {
       res.json({
         success: false,
-        msg: 'Ìí¼ÓµêÆÌÊ§°Ü',
+        msg: 'æ·»åŠ åº—é“ºå¤±è´¥',
         err: err
       })
     })
 })
 
-router.get('/merchant_shops', function (req, res, next) { // ²éÑ¯µêÆÌÁĞ±í£¬´«ÉÌ¼Òid¼´¸ÃÉÌ¼ÒÏÂµÄµêÆÌÁĞ±í
+router.get('/merchant_shops', function (req, res, next) { // æŸ¥è¯¢åº—é“ºåˆ—è¡¨ï¼Œä¼ å•†å®¶idå³è¯¥å•†å®¶ä¸‹çš„åº—é“ºåˆ—è¡¨
   var reqQuery = req.query
   var parsePage = parseInt(reqQuery.page)
   var parseLimit = parseInt(reqQuery.limit)
@@ -546,7 +546,7 @@ router.get('/merchant_shops', function (req, res, next) { // ²éÑ¯µêÆÌÁĞ±í£¬´«ÉÌ¼
       if (!count) {
         res.json({
           success: true,
-          msg: '»ñÈ¡µêÆÌÁĞ±í³É¹¦',
+          msg: 'è·å–åº—é“ºåˆ—è¡¨æˆåŠŸ',
           count: 0,
           data: []
         })
@@ -575,7 +575,7 @@ router.get('/merchant_shops', function (req, res, next) { // ²éÑ¯µêÆÌÁĞ±í£¬´«ÉÌ¼
           .then(data => {
             res.json({
               success: true,
-              msg: '»ñÈ¡µêÆÌÁĞ±í³É¹¦',
+              msg: 'è·å–åº—é“ºåˆ—è¡¨æˆåŠŸ',
               count: count,
               data: data
             })
@@ -583,7 +583,7 @@ router.get('/merchant_shops', function (req, res, next) { // ²éÑ¯µêÆÌÁĞ±í£¬´«ÉÌ¼
           .catch(err => {
             res.json({
               success: false,
-              msg: '»ñÈ¡µêÆÌÁĞ±í³ö´í',
+              msg: 'è·å–åº—é“ºåˆ—è¡¨å‡ºé”™',
               err: err
             })
           })
@@ -596,7 +596,7 @@ router.get('/shop_detail', function (req, res, next) {
   if (!_id) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı'
+      msg: 'ç¼ºå°‘å‚æ•°'
     })
   }
   MerchantShop.findOne({ _id: _id })
@@ -604,19 +604,19 @@ router.get('/shop_detail', function (req, res, next) {
       if (!data) {
         return res.json({
           success: false,
-          msg: 'µêÆÌ²»´æÔÚ'
+          msg: 'åº—é“ºä¸å­˜åœ¨'
         })
       }
       res.json({
         success: true,
-        msg: '²éÑ¯µêÆÌÏêÇé³É¹¦',
+        msg: 'æŸ¥è¯¢åº—é“ºè¯¦æƒ…æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '²éÑ¯µêÆÌÏêÇé³ö´í',
+        msg: 'æŸ¥è¯¢åº—é“ºè¯¦æƒ…å‡ºé”™',
         err: err.toString()
       })
     })
@@ -628,7 +628,7 @@ router.post('/shop_edit', function (req, res, next) {
   if (!_id || Object.keys(reqBody).length < 8) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
   delete reqBody._id
@@ -638,25 +638,25 @@ router.post('/shop_edit', function (req, res, next) {
     var filename = undefined;
     var destKey = undefined;
     if (!isWebUrl) {
-      utils.resourceDelete({ // É¾³ılogo
+      utils.resourceDelete({ // åˆ é™¤logo
         key: reqBody.origin_logo,
         success: function (res) {
           filename = reqBody.logo.split('/')[reqBody.logo.split('/').length - 1];
           destKey = config.qiniuConfig.shopLogoDirname + filename;
           reqBody.logo = destKey
 
-          utils.resourceMove({ // ÒÆ¶¯logo
+          utils.resourceMove({ // ç§»åŠ¨logo
             srcKey: originKey,
             destKey: destKey,
             success: function (res) {
             },
             error: function (err) {
-              utils.writeQiniuErrorLog('ĞŞ¸ÄµêÆÌlogoÍ¼£¬µ¥¸öÒÆ¶¯¹ı³ÌÊ§°Ü£¬err: ' + err)
+              utils.writeQiniuErrorLog('ä¿®æ”¹åº—é“ºlogoå›¾ï¼Œå•ä¸ªç§»åŠ¨è¿‡ç¨‹å¤±è´¥ï¼Œerr: ' + err)
             }
           })
         },
         error: function (err) {
-          utils.writeQiniuErrorLog('ĞŞ¸ÄµêÆÌlogoÍ¼£¬µ¥¸öÉ¾³ı¹ı³ÌÊ§°Ü£¬err: ' + err)
+          utils.writeQiniuErrorLog('ä¿®æ”¹åº—é“ºlogoå›¾ï¼Œå•ä¸ªåˆ é™¤è¿‡ç¨‹å¤±è´¥ï¼Œerr: ' + err)
         }
       })
     }
@@ -673,19 +673,19 @@ router.post('/shop_edit', function (req, res, next) {
     .then(() => {
       res.json({
         success: true,
-        msg: 'µêÆÌĞŞ¸Ä³É¹¦'
+        msg: 'åº—é“ºä¿®æ”¹æˆåŠŸ'
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: 'µêÆÌĞŞ¸ÄÊ§°Ü',
+        msg: 'åº—é“ºä¿®æ”¹å¤±è´¥',
         err: err.toString()
       })
     })
 })
 
-router.get('/near_shops', function (req, res, next) { // ²éÑ¯¸½½üµÄµêÆÌ£¬µ±Ç°Î»ÖÃ±Ø´«
+router.get('/near_shops', function (req, res, next) { // æŸ¥è¯¢é™„è¿‘çš„åº—é“ºï¼Œå½“å‰ä½ç½®å¿…ä¼ 
   var reqQuery = req.query;
   var parsePage = parseInt(reqQuery.page)
   var parseLimit = parseInt(reqQuery.limit)
@@ -695,7 +695,7 @@ router.get('/near_shops', function (req, res, next) { // ²éÑ¯¸½½üµÄµêÆÌ£¬µ±Ç°Î»Ö
   if (!reqQuery.location || typeof(reqQuery.location) !== 'string') {
     res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
     return
   }
@@ -707,63 +707,63 @@ router.get('/near_shops', function (req, res, next) { // ²éÑ¯¸½½üµÄµêÆÌ£¬µ±Ç°Î»Ö
   var locationRes = [ longitude, latitude ]
   // var locationOptions = maxDistance ? {
   //   $nearSphere: locationRes,
-  //   $maxDistance: parseFloat(maxDistance) / 6371 // ´Ë´¦Òª×ª»»Îª»¡¶È£¬6371ÎªµØÇò°ë¾¶£¬µ¥Î»km
+  //   $maxDistance: parseFloat(maxDistance) / 6371 // æ­¤å¤„è¦è½¬æ¢ä¸ºå¼§åº¦ï¼Œ6371ä¸ºåœ°çƒåŠå¾„ï¼Œå•ä½km
   // } : { $nearSphere: locationRes }
 
-  MerchantShop.aggregate([{ // ·µ»Ø´ø¾àÀëµÄÊı¾İ£¬µ¥Î»ÊÇÃ×
+  MerchantShop.aggregate([{ // è¿”å›å¸¦è·ç¦»çš„æ•°æ®ï¼Œå•ä½æ˜¯ç±³
     '$geoNear': {
       'near': {
           'type': 'Point',
           'coordinates': locationRes
         },
       'spherical': true,
-      'distanceField': 'distance_m', // ×îºóÉú³ÉµÄ¾àÀë×Ö¶Î
+      'distanceField': 'distance_m', // æœ€åç”Ÿæˆçš„è·ç¦»å­—æ®µ
       'limit': limit
     }
   }, { '$skip': skip }])
     .then(data => {
       res.json({
         success: true,
-        msg: '»ñÈ¡¸½½üµêÆÌ³É¹¦',
+        msg: 'è·å–é™„è¿‘åº—é“ºæˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡¸½½üµêÆÌÊ§°Ü',
+        msg: 'è·å–é™„è¿‘åº—é“ºå¤±è´¥',
         err: err.toString()
       })
     })
 
-  // MerchantShop.geoNear(locationRes, { spherical: true, limit: limit}) // ·µ»Ø´ø¾àÀëµÄÊı¾İ£¬µ¥Î»ÊÇ»¡¶È£¬Òª³ËÒÔµØÇò°ë¾¶8371£¬µ«ÊÇÃ»ÓĞskip²ÎÊı
+  // MerchantShop.geoNear(locationRes, { spherical: true, limit: limit}) // è¿”å›å¸¦è·ç¦»çš„æ•°æ®ï¼Œå•ä½æ˜¯å¼§åº¦ï¼Œè¦ä¹˜ä»¥åœ°çƒåŠå¾„8371ï¼Œä½†æ˜¯æ²¡æœ‰skipå‚æ•°
   //   .then(data => {
   //     res.json({
   //       success: true,
-  //       msg: '»ñÈ¡¸½½üµêÆÌ³É¹¦',
+  //       msg: 'è·å–é™„è¿‘åº—é“ºæˆåŠŸ',
   //       data: data
   //     })
   //   })
   //   .catch(err => {
   //     res.json({
   //       success: false,
-  //       mag: '»ñÈ¡¸½½üµêÆÌÊ§°Ü',
+  //       mag: 'è·å–é™„è¿‘åº—é“ºå¤±è´¥',
   //       err: err.toString()
   //     })
   //   })
 
-  // MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip) // ·µ»Ø²»´ø¾àÀëµÄÊı¾İ
+  // MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip) // è¿”å›ä¸å¸¦è·ç¦»çš„æ•°æ®
   //   .then(data => {
   //     res.json({
   //       success: true,
-  //       msg: '»ñÈ¡¸½½üµêÆÌ³É¹¦',
+  //       msg: 'è·å–é™„è¿‘åº—é“ºæˆåŠŸ',
   //       data: data
   //     })
   //   })
   //   .catch(err => {
   //     res.json({
   //       success: false,
-  //       mag: '»ñÈ¡¸½½üµêÆÌÊ§°Ü',
+  //       mag: 'è·å–é™„è¿‘åº—é“ºå¤±è´¥',
   //       err: err.toString()
   //     })
   //   })
@@ -784,7 +784,7 @@ router.post('/category_add', function (req, res, next) {
     if (data) {
       res.json({
         success: false,
-        msg: '¸Ã¼¶·ÖÀàÏÂÒÑ´æÔÚÏàÍ¬Ãû³Æ'
+        msg: 'è¯¥çº§åˆ†ç±»ä¸‹å·²å­˜åœ¨ç›¸åŒåç§°'
       })
     } else {
       var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.icon);
@@ -820,15 +820,15 @@ router.post('/category_add', function (req, res, next) {
           console.log(data)
           res.json({
             success: true,
-            msg: 'Ìí¼Ó·ÖÀà³É¹¦'
+            msg: 'æ·»åŠ åˆ†ç±»æˆåŠŸ'
           })
 
-          if (icon && !isWebUrl) { // Èç¹ûÊÇÉÏ´«µ½ÆßÅ£µÄ£¬ÒÆ¶¯Í¼Æ¬
+          if (icon && !isWebUrl) { // å¦‚æœæ˜¯ä¸Šä¼ åˆ°ä¸ƒç‰›çš„ï¼Œç§»åŠ¨å›¾ç‰‡
             utils.resourceMove({
               srcKey: originKey,
               destKey: destKey,
               error: function (err) {
-                utils.writeQiniuErrorLog('µ¥¸öÒÆ¶¯·ÖÀàicon³ö´í£¬err: ' + err)
+                utils.writeQiniuErrorLog('å•ä¸ªç§»åŠ¨åˆ†ç±»iconå‡ºé”™ï¼Œerr: ' + err)
               }
             })
           }
@@ -837,7 +837,7 @@ router.post('/category_add', function (req, res, next) {
         .catch(err => {
           res.json({
             success: false,
-            msg: 'Ìí¼Ó·ÖÀàÊ§°Ü',
+            msg: 'æ·»åŠ åˆ†ç±»å¤±è´¥',
             err: err
           })
         })
@@ -845,7 +845,7 @@ router.post('/category_add', function (req, res, next) {
   }).catch(err => {
     res.json({
       success: false,
-      msg: 'Ìí¼Ó·ÖÀàÊ§°Ü',
+      msg: 'æ·»åŠ åˆ†ç±»å¤±è´¥',
       err: err
     })
   })
@@ -881,7 +881,7 @@ router.get('/category_detail', function (req, res, next) {
   if (!_id) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı'
+      msg: 'ç¼ºå°‘å‚æ•°'
     })
   }
   GoodsCategory.findOne({ _id })
@@ -889,19 +889,19 @@ router.get('/category_detail', function (req, res, next) {
       if (!data) {
         return res.json({
           success: false,
-          msg: '·ÖÀà²»´æÔÚ'
+          msg: 'åˆ†ç±»ä¸å­˜åœ¨'
         })
       }
       res.json({
         success: true,
-        msg: '»ñÈ¡·ÖÀàÏêÇé³É¹¦',
+        msg: 'è·å–åˆ†ç±»è¯¦æƒ…æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡·ÖÀàÏêÇé³ö´í',
+        msg: 'è·å–åˆ†ç±»è¯¦æƒ…å‡ºé”™',
         err: err.toString()
       })
     })
@@ -913,7 +913,7 @@ router.post('/category_edit', function (req, res, next) {
   if (!_id || Object.keys(reqBody).length < 3) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
   delete reqBody._id
@@ -923,23 +923,23 @@ router.post('/category_edit', function (req, res, next) {
     var filename = undefined;
     var destKey = undefined;
     if (!isWebUrl) {
-      utils.resourceDelete({ // É¾³ıicon
+      utils.resourceDelete({ // åˆ é™¤icon
         key: reqBody.origin_icon,
         success: function (res) {
           filename = reqBody.icon.split('/')[reqBody.icon.split('/').length - 1];
           destKey = config.qiniuConfig.categoryIconDirname + filename;
           reqBody.icon = destKey
 
-          utils.resourceMove({ // ÒÆ¶¯logo
+          utils.resourceMove({ // ç§»åŠ¨logo
             srcKey: originKey,
             destKey: destKey,
             error: function (err) {
-              utils.writeQiniuErrorLog('ĞŞ¸ÄµêÆÌlogoÍ¼£¬µ¥¸öÒÆ¶¯¹ı³ÌÊ§°Ü£¬err: ' + err)
+              utils.writeQiniuErrorLog('ä¿®æ”¹åº—é“ºlogoå›¾ï¼Œå•ä¸ªç§»åŠ¨è¿‡ç¨‹å¤±è´¥ï¼Œerr: ' + err)
             }
           })
         },
         error: function (err) {
-          utils.writeQiniuErrorLog('ĞŞ¸ÄµêÆÌlogoÍ¼£¬µ¥¸öÉ¾³ı¹ı³ÌÊ§°Ü£¬err: ' + err)
+          utils.writeQiniuErrorLog('ä¿®æ”¹åº—é“ºlogoå›¾ï¼Œå•ä¸ªåˆ é™¤è¿‡ç¨‹å¤±è´¥ï¼Œerr: ' + err)
         }
       })
     }
@@ -949,13 +949,13 @@ router.post('/category_edit', function (req, res, next) {
     .then(() => {
       res.json({
         success: true,
-        msg: '·ÖÀàĞŞ¸Ä³É¹¦'
+        msg: 'åˆ†ç±»ä¿®æ”¹æˆåŠŸ'
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '·ÖÀàĞŞ¸ÄÊ§°Ü',
+        msg: 'åˆ†ç±»ä¿®æ”¹å¤±è´¥',
         err: err.toString()
       })
     })
@@ -972,7 +972,7 @@ router.post('/goods_add', function (req, res, next) {
   if (!shopId || !title || !valuation || !categoryId || !(figureImgs instanceof Array) || !figureImgs.length || !(detailImgs instanceof Array) || !detailImgs.length) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
@@ -981,11 +981,11 @@ router.post('/goods_add', function (req, res, next) {
       if (!data) {
         return res.json({
           success: false,
-          msg: 'µêÆÌ²»´æÔÚ'
+          msg: 'åº—é“ºä¸å­˜åœ¨'
         })
       }
 
-      // ÉÌÆ·ÂÖ²¥Í¼²¿·Ö
+      // å•†å“è½®æ’­å›¾éƒ¨åˆ†
       var goodsFigureDirname = config.qiniuConfig.goodsFigureDirname;
       var movedFigureImgs = [];
       figureImgs.forEach(function (item, index, arr) {
@@ -993,7 +993,7 @@ router.post('/goods_add', function (req, res, next) {
         movedFigureImgs.push(goodsFigureDirname + filename);
       })
 
-      // ÉÌÆ·ÏêÇéÍ¼²¿·Ö
+      // å•†å“è¯¦æƒ…å›¾éƒ¨åˆ†
       var goodsDetailDirname = config.qiniuConfig.goodsDetailDirname;
       var movedDetailImgs = [];
       detailImgs.forEach(function (item, index, arr) {
@@ -1016,28 +1016,28 @@ router.post('/goods_add', function (req, res, next) {
           res.json({
             success: true,
             _id: data._id,
-            msg: 'ÉÌÆ·Ìí¼Ó³É¹¦'
+            msg: 'å•†å“æ·»åŠ æˆåŠŸ'
           })
 
           utils.resourceMoveBatch({
             srcKeys: figureImgs,
             destDirname: goodsFigureDirname,
             error: function (err) {
-              utils.writeQiniuErrorLog('ÅúÁ¿ÒÆ¶¯ÉÌÆ·ÂÖ²¥Í¼Æ¬Ê§°Ü£¬err: ' + err)
+              utils.writeQiniuErrorLog('æ‰¹é‡ç§»åŠ¨å•†å“è½®æ’­å›¾ç‰‡å¤±è´¥ï¼Œerr: ' + err)
             }
           })
           utils.resourceMoveBatch({
             srcKeys: detailImgs,
             destDirname: goodsDetailDirname,
             error: function (err) {
-              utils.writeQiniuErrorLog('ÅúÁ¿ÒÆ¶¯ÉÌÆ·ÏêÇéÍ¼Æ¬Ê§°Ü£¬err: ' + err)
+              utils.writeQiniuErrorLog('æ‰¹é‡ç§»åŠ¨å•†å“è¯¦æƒ…å›¾ç‰‡å¤±è´¥ï¼Œerr: ' + err)
             }
           })
         })
         .catch(err => {
           res.json({
             success: false,
-            msg: 'ÉÌÆ·Ìí¼ÓÊ§°Ü',
+            msg: 'å•†å“æ·»åŠ å¤±è´¥',
             err: err.toString()
           })
         })
@@ -1045,7 +1045,7 @@ router.post('/goods_add', function (req, res, next) {
     .catch(err => {
       res.json({
         success: false,
-        msg: '²éÑ¯µêÆÌÊ§°Ü',
+        msg: 'æŸ¥è¯¢åº—é“ºå¤±è´¥',
         err: err.toString()
       })
     })
@@ -1063,14 +1063,14 @@ router.get('/goods_list', function (req, res, next) {
     .then(data => {
       res.json({
         success: true,
-        msg: '»ñÈ¡ÉÌÆ·ÁĞ±í³É¹¦',
+        msg: 'è·å–å•†å“åˆ—è¡¨æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡ÉÌÆ·ÁĞ±íÊ§°Ü',
+        msg: 'è·å–å•†å“åˆ—è¡¨å¤±è´¥',
         err: err.toString()
       })
     })
@@ -1081,7 +1081,7 @@ router.get('/goods_detail', function (req, res, next) {
   if (!_id) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
   ShopGoods.findOne({ _id: _id }).populate({ path: 'category_id' })
@@ -1089,19 +1089,19 @@ router.get('/goods_detail', function (req, res, next) {
       if (!data) {
         return res.json({
           success: false,
-          msg: '»ñÈ¡ÉÌÆ·ÏêÇéÊ§°Ü£¬ÉÌÆ·²»´æÔÚ'
+          msg: 'è·å–å•†å“è¯¦æƒ…å¤±è´¥ï¼Œå•†å“ä¸å­˜åœ¨'
         })
       }
       res.json({
         success: true,
-        msg: '»ñÈ¡ÉÌÆ·ÏêÇé³É¹¦',
+        msg: 'è·å–å•†å“è¯¦æƒ…æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡ÉÌÆ·ÏêÇéÊ§°Ü',
+        msg: 'è·å–å•†å“è¯¦æƒ…å¤±è´¥',
         err: err.toString()
       })
     })
@@ -1120,7 +1120,7 @@ router.post('/goods_edit', function (req, res, next) {
   if (!_id || !title || !valuation || !figureImgs || !detailImgs || !originFigureImgs || !originDetailImgs) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
@@ -1135,7 +1135,7 @@ router.post('/goods_edit', function (req, res, next) {
 
   var deleteImgs = figureImgsDelete.concat(detailImgsDelete)
 
-  // ÉÌÆ·ÂÖ²¥Í¼²¿·Ö
+  // å•†å“è½®æ’­å›¾éƒ¨åˆ†
   var goodsFigureDirname = config.qiniuConfig.goodsFigureDirname;
   var movedFigureImgs = [];
   figureImgsMove.forEach(function (item, index, arr) {
@@ -1143,7 +1143,7 @@ router.post('/goods_edit', function (req, res, next) {
     movedFigureImgs.push(goodsFigureDirname + filename);
   })
 
-  // ÉÌÆ·ÏêÇéÍ¼²¿·Ö
+  // å•†å“è¯¦æƒ…å›¾éƒ¨åˆ†
   var goodsDetailDirname = config.qiniuConfig.goodsDetailDirname;
   var movedDetailImgs = [];
   detailImgsMove.forEach(function (item, index, arr) {
@@ -1160,31 +1160,31 @@ router.post('/goods_edit', function (req, res, next) {
     .then(() => {
       res.json({
         success: true,
-        msg: 'ĞŞ¸ÄÉÌÆ·³É¹¦'
+        msg: 'ä¿®æ”¹å•†å“æˆåŠŸ'
       })
-      if (deleteImgs.length) { // É¾³ıÍ¼Æ¬
+      if (deleteImgs.length) { // åˆ é™¤å›¾ç‰‡
         utils.resourceDeleteBatch({
           keys: deleteImgs,
           error: function (err) {
-            utils.writeQiniuErrorLog('ĞŞ¸ÄÉÌÆ·Ê±ÅúÁ¿É¾³ıÍ¼Æ¬Ê§°Ü£¬err: ' + err)
+            utils.writeQiniuErrorLog('ä¿®æ”¹å•†å“æ—¶æ‰¹é‡åˆ é™¤å›¾ç‰‡å¤±è´¥ï¼Œerr: ' + err)
           }
         })
       }
-      if (figureImgsMove.length) { // ÒÆ¶¯Í¼Æ¬
+      if (figureImgsMove.length) { // ç§»åŠ¨å›¾ç‰‡
         utils.resourceMoveBatch({
           srcKeys: figureImgsMove,
           destDirname: goodsFigureDirname,
           error: function (err) {
-            utils.writeQiniuErrorLog('ĞŞ¸ÄÉÌÆ·Ê±ÅúÁ¿ÒÆ¶¯Í¼Æ¬Ê±Ê§°Ü£¬err: ' + err)
+            utils.writeQiniuErrorLog('ä¿®æ”¹å•†å“æ—¶æ‰¹é‡ç§»åŠ¨å›¾ç‰‡æ—¶å¤±è´¥ï¼Œerr: ' + err)
           }
         })
       }
-      if (detailImgsMove.length) { // ÒÆ¶¯Í¼Æ¬
+      if (detailImgsMove.length) { // ç§»åŠ¨å›¾ç‰‡
         utils.resourceMoveBatch({
           srcKeys: detailImgsMove,
           destDirname: goodsDetailDirname,
           error: function (err) {
-            utils.writeQiniuErrorLog('ĞŞ¸ÄÉÌÆ·Ê±ÅúÁ¿ÒÆ¶¯Í¼Æ¬Ê±Ê§°Ü£¬err: ' + err)
+            utils.writeQiniuErrorLog('ä¿®æ”¹å•†å“æ—¶æ‰¹é‡ç§»åŠ¨å›¾ç‰‡æ—¶å¤±è´¥ï¼Œerr: ' + err)
           }
         })
       }
@@ -1193,7 +1193,7 @@ router.post('/goods_edit', function (req, res, next) {
       console.log(err)
       res.json({
         success: false,
-        msg: 'ĞŞ¸ÄÉÌÆ·Ê§°Ü',
+        msg: 'ä¿®æ”¹å•†å“å¤±è´¥',
         err: err.toString()
       })
     })
@@ -1208,14 +1208,14 @@ router.post('/topic_add', function (req, res, next) {
   if (!title || !content || !authorId || !(content instanceof Array)) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
   var moveTopicImgs = [];
   var topicDirname = config.qiniuConfig.topicDirname;
 
-  for (var i = 0; i < content.length; i++) { // type: 1ÎªÎÄ×Ö£¬2ÎªÍ¼Æ¬
+  for (var i = 0; i < content.length; i++) { // type: 1ä¸ºæ–‡å­—ï¼Œ2ä¸ºå›¾ç‰‡
     if (content[i].type === 2) {
       var tempMoveImgs = [];
       moveTopicImgs = moveTopicImgs.concat(content[i].value);
@@ -1237,7 +1237,7 @@ router.post('/topic_add', function (req, res, next) {
     .then(data => {
       res.json({
         success: true,
-        msg: 'Ìû×ÓÌí¼Ó³É¹¦',
+        msg: 'å¸–å­æ·»åŠ æˆåŠŸ',
         data: {
           _id: data._id
         }
@@ -1249,32 +1249,32 @@ router.post('/topic_add', function (req, res, next) {
         srcKeys: moveTopicImgs,
         destDirname: topicDirname,
         error: function (err) {
-          utils.writeQiniuErrorLog('ÅúÁ¿ÒÆ¶¯Ìû×ÓÍ¼Æ¬Ê§°Ü£¬err: ' + err)
+          utils.writeQiniuErrorLog('æ‰¹é‡ç§»åŠ¨å¸–å­å›¾ç‰‡å¤±è´¥ï¼Œerr: ' + err)
         }
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: 'Ìû×ÓÌí¼ÓÊ§°Ü',
+        msg: 'å¸–å­æ·»åŠ å¤±è´¥',
         err: err.toString()
       })
     })
 })
 
 router.get('/topic_list', function (req, res, next) {
-  Topic.find().sort({ updatedAt: -1 }).populate({ path: 'author_id', select: { name: 1, _id: 0 } })
+  Topic.find().sort({ updatedAt: -1 }).populate({ path: 'author_id' })
     .then(data => {
       res.json({
         success: true,
-        msg: '»ñÈ¡Ìû×ÓÁĞ±í³É¹¦',
+        msg: 'è·å–å¸–å­åˆ—è¡¨æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡Ìû×ÓÁĞ±íÊ§°Ü',
+        msg: 'è·å–å¸–å­åˆ—è¡¨å¤±è´¥',
         err: err.toString()
       })
     })
@@ -1286,22 +1286,23 @@ router.get('/topic_detail', function (req, res, next) {
   if (!_id) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
   Topic.findOne({ _id: _id })
     .then(data => {
+      var viewCount = data.view_count + 1;
       res.json({
         success: true,
-        msg: '»ñÈ¡Ìû×ÓÏêÇé³É¹¦',
+        msg: 'è·å–å¸–å­è¯¦æƒ…æˆåŠŸ',
         data: data
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡Ìû×ÓÏêÇéÊ§°Ü',
+        msg: 'è·å–å¸–å­è¯¦æƒ…å¤±è´¥',
         err: err.toString()
       })
     })
@@ -1315,7 +1316,7 @@ router.post('/user_add', function (req, res, next) {
   if (!username || !password) {
     return res.json({
       success: false,
-      msg: 'È±ÉÙ²ÎÊı»ò²ÎÊı´íÎó'
+      msg: 'ç¼ºå°‘å‚æ•°æˆ–å‚æ•°é”™è¯¯'
     })
   }
 
@@ -1324,23 +1325,23 @@ router.post('/user_add', function (req, res, next) {
       if (data) {
         return res.json({
           success: false,
-          msg: 'ÓÃ»§ÃûÒÑ´æÔÚ'
+          msg: 'ç”¨æˆ·åå·²å­˜åœ¨'
         })
       }
 
-      var user = new User(reqBody)
+      var user = new User({ ...reqBody, is_admin: true })
 
       user.save()
         .then(() => {
           res.json({
             success: true,
-            msg: 'ÓÃ»§Ìí¼Ó³É¹¦'
+            msg: 'ç”¨æˆ·æ·»åŠ æˆåŠŸ'
           })
         })
         .catch(err => {
           res.json({
             success: false,
-            msg: 'ÓÃ»§Ìí¼ÓÊ§°Ü',
+            msg: 'ç”¨æˆ·æ·»åŠ å¤±è´¥',
             err: err.toString()
           })
         })
@@ -1348,27 +1349,37 @@ router.post('/user_add', function (req, res, next) {
     .catch(err => {
       res.json({
         success: false,
-        msg: 'ÓÃ»§Ìí¼ÓÊ§°Ü',
+        msg: 'ç”¨æˆ·æ·»åŠ å¤±è´¥',
         err: err.toString()
       })
     })
 })
 
-router.get('/user_list', function (req, res, next) {
-  var reqQuery = req.query;
-
-  User.find().sort({ updatedAt: -1 })
-    .then(data => {
-      res.json({
-        success: true,
-        msg: '»ñÈ¡ÓÃ»§ÁĞ±í³É¹¦',
-        data: data
-      })
+router.get('/topic_check_list', function (req, res, next) {
+  Topic.count({ status: -1 })
+    .then(count => {
+      Topic.findOne().sort({ createdAt: 1 })
+        .then(data => {
+          res.json({
+            success: true,
+            msg: 'è·å–å®¡æ ¸å¸–å­æˆåŠŸ',
+            count: count,
+            data: data
+          })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: 'è·å–æœªå®¡æ ¸æ€»æ•°æˆåŠŸï¼Œä½†è·å–å®¡æ ¸å¸–å­å¤±è´¥',
+            count: count,
+            err: err.toString()
+          })
+        })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '»ñÈ¡ÓÃ»§ÁĞ±íÊ§°Ü',
+        msg: 'è·å–æœªå®¡æ ¸å¸–å­æ€»æ•°å¤±è´¥',
         err: err.toString()
       })
     })
