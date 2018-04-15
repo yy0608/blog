@@ -1358,7 +1358,7 @@ router.post('/user_add', function (req, res, next) {
 router.get('/topic_check_list', function (req, res, next) {
   Topic.count({ status: -1 })
     .then(count => {
-      Topic.findOne().sort({ createdAt: 1 })
+      Topic.findOne({ status: -1 }).sort({ createdAt: 1 })
         .then(data => {
           res.json({
             success: true,
@@ -1380,6 +1380,50 @@ router.get('/topic_check_list', function (req, res, next) {
       res.json({
         success: false,
         msg: '获取未审核帖子总数失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/topic_check', function (req, res, next) {
+  var reqBody = req.body;
+  var _id = reqBody._id;
+  var status = reqBody.status;
+
+  Topic.findOneAndUpdate({ _id: _id }, { status: status })
+    .then(() => { // 先审核
+      Topic.count({ status: -1 })
+        .then(count => { // 查总数
+          Topic.findOne({ status: -1 }).sort({ createdAt: 1 })
+            .then(data => { // 返回最早的未审核的一条帖子
+              res.json({
+                success: true,
+                msg: '审核成功',
+                count: count,
+                data: data
+              })
+            })
+            .catch(err => {
+              res.json({
+                success: false,
+                msg: '获取未审核总数成功，但获取审核帖子失败',
+                count: count,
+                err: err.toString()
+              })
+            })
+        })
+        .catch(err => {
+          res.json({
+            success: false,
+            msg: '审核成功，但获取未审核帖子总数失败',
+            err: err.toString()
+          })
+        })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '审核失败',
         err: err.toString()
       })
     })
