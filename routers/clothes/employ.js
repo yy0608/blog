@@ -1151,7 +1151,7 @@ router.post('/goods_edit', function (req, res, next) {
     movedDetailImgs.push(goodsDetailDirname + filename);
   })
 
-  ShopGoods.update({ _id: _id }, {
+  ShopGoods.findOneAndUpdate({ _id: _id }, {
     title: title,
     valuation: valuation,
     figure_imgs: utils.changeQiniuFilename(figureImgs, goodsFigureDirname),
@@ -1329,7 +1329,14 @@ router.post('/user_add', function (req, res, next) {
         })
       }
 
-      var user = new User({ ...reqBody, is_admin: true })
+      var hash = crypto.createHash('md5');
+      hash.update(config.passwordKey.left + password + config.passwordKey.right);
+
+      var user = new User({
+        ...reqBody,
+        password: hash.digest('hex'),
+        is_admin: true
+      })
 
       user.save()
         .then(() => {

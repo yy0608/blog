@@ -7,12 +7,13 @@ var utils = require('../../utils.js');
 
 var User = require('../../models/clothes/User.js');
 var Topic = require('../../models/clothes/Topic.js');
+var Comment = require('../../models/clothes/Comment.js');
 
 const loginTtl = 1800;
 
 router.use(function (req, res, next) {
 
-  if (req.url === '/check_login') {
+  if (req.url === '/check_login' || req.url === '/login' || req.url === '/register' || req.url === '/logout') {
     return next()
   }
 
@@ -57,7 +58,7 @@ router.post('/register', function (req, res, next) {
       hash.update(config.passwordKey.left + password + config.passwordKey.right);
 
       var user = new User({
-        username: username,
+        ...reqBody,
         password: hash.digest('hex')
       })
       user.save()
@@ -89,7 +90,14 @@ router.post('/login', function (req, res, next) {
   var username = reqBody.username;
   var password = reqBody.password;
 
-  if (!(/^1[34578]\d{9}$/.test(username)) || !password) {
+  // if (!(/^1[34578]\d{9}$/.test(username)) || !password) {
+  //   return res.json({
+  //     success: false,
+  //     msg: '缺少参数或参数错误'
+  //   })
+  // }
+
+  if (!(username) || !password) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
@@ -127,6 +135,17 @@ router.post('/login', function (req, res, next) {
         data: data
       })
     })
+})
+
+router.post('/logout', function (req, res, next) {
+  var sessionId = req.body.session_id;
+
+  client.del(sessionId);
+
+  res.json({
+    success: true,
+    msg: '退出成功'
+  })
 })
 
 router.post('/check_login', function (req, res, next) {
@@ -186,7 +205,7 @@ router.get('/user_list', function (req, res, next) {
 })
 
 router.get('/topic_list', function (req, res, next) {
-  Topic.find({ status: -1 }).sort({ createdAt: -1 }).populate({ path: 'author_id', select: { username: 1, _id: 0 } })
+  Topic.find({ status: 0 }).sort({ createdAt: -1 }).populate({ path: 'author_id', select: { username: 1, _id: 0 } })
     .then(data => {
       res.json({
         success: true,
@@ -213,21 +232,34 @@ router.get('/topic_detail', function (req, res, next) {
     })
   }
 
-  Topic.findOne({ _id: _id })
-    .then(data => {
-      var viewCount = data.view_count + 1;
-      Topic.findOneAndUpdate({ _id: _id }, { view_count: viewCount })
-        .then(() => {
-          res.json({ // 获取帖子详情成功，更新浏览量成功
-            success: true,
-            msg: '获取帖子详情成功',
-            data: data
-          })
+  Comment.count({ status: -1 })
+    .then(count => {
+      Topic.findOne({ _id: _id }).populate({ path: 'author_id', select: {
+        password: 0
+      } })
+        .then(data => {
+          var viewCount = data.view_count + 1;
+          Topic.findOneAndUpdate({ _id: _id }, { view_count: viewCount })
+            .then(() => {
+              res.json({ // 获取帖子详情成功，更新浏览量成功
+                success: true,
+                msg: '获取帖子详情成功',
+                comment_count: count,
+                data: data
+              })
+            })
+            .catch(err => {
+              res.json({
+                success: false,
+                msg: '获取帖子详情成功，但更新浏览量失败',
+                err: err.toString()
+              })
+            })
         })
         .catch(err => {
           res.json({
             success: false,
-            msg: '获取帖子详情成功，但更新浏览量失败',
+            msg: '获取帖子详情失败',
             err: err.toString()
           })
         })
@@ -236,6 +268,91 @@ router.get('/topic_detail', function (req, res, next) {
       res.json({
         success: false,
         msg: '获取帖子详情失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/topic_collect', function (req, res, next) {
+  var reqBody = req.body;
+  var userId = reqBody.user_id;
+  var topicId = reqBody.topic_id;
+
+  if (!userId || !topicId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  User.findOneAndUpdate({ _id: userId }, { $addToSet: { 'collected_topics': topicId } }) // $pull
+    .then(() => {
+      res.json({
+        success: true,
+        msg: '收藏成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '收藏失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/comment', function (req, res, next) {
+  var reqBody = req.body;
+  var topicId = reqBody.topic_id;
+  var authorId = reqBody.author_id;
+  var comment = reqBody.comment;
+
+  if (!topicId || !authorId || !comment) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var comment = new Comment(reqBody)
+  comment.save()
+    .then(() => {
+      res.json({
+        success: true,
+        msg: '评论成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '评论失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.get('/comment_list', function (req, res, next) {
+  Comment.find({ status: -1 }, {
+    topic_id: 0,
+    updatedAt: 0,
+    status: 0
+  }).populate({ path: 'author_id', select: {
+    updatedAt: 0,
+    _id: 0,
+    password: 0,
+    user_info: 0
+  } }).sort({ createdAt: -1 })
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '查询评论列表成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '查询评论列表失败',
         err: err.toString()
       })
     })

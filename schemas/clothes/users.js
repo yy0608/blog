@@ -25,6 +25,9 @@ module.exports = new mongoose.Schema({
   user_info: { // 小程序获取的用户信息
     type: String,
     default: ''
+  },
+  collected_topics: {
+    type: [mongoose.Schema.Types.ObjectId]
   }
 }, {
   versionKey: false, // 去掉__v字段
