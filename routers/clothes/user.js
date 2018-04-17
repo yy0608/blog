@@ -140,6 +140,15 @@ router.post('/login', function (req, res, next) {
 router.post('/logout', function (req, res, next) {
   var sessionId = req.body.session_id;
 
+  console.log(sessionId);
+
+  if (!sessionId) {
+    return res.json({
+      success: false,
+      msg: '退出成功'
+    })
+  }
+
   client.del(sessionId);
 
   res.json({
@@ -223,35 +232,67 @@ router.get('/topic_list', function (req, res, next) {
 })
 
 router.get('/topic_detail', function (req, res, next) {
-  var _id = req.query._id;
+  var topicId = req.query.topic_id;
+  var userId = req.query.user_id;
 
-  if (!_id) {
+  if (!topicId) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
   }
 
-  Comment.count({ status: -1 })
-    .then(count => {
-      Topic.findOne({ _id: _id }).populate({ path: 'author_id', select: {
-        password: 0
-      } })
-        .then(data => {
-          var viewCount = data.view_count + 1;
-          Topic.findOneAndUpdate({ _id: _id }, { view_count: viewCount })
-            .then(() => {
-              res.json({ // 获取帖子详情成功，更新浏览量成功
-                success: true,
-                msg: '获取帖子详情成功',
-                comment_count: count,
-                data: data
-              })
+  User.count({ 'collected_topics': topicId }) // 查询文章收藏总数
+    .then(collectedCount => {
+      Comment.count({ status: -1 })
+        .then(count => {
+          Topic.findOne({ _id: topicId }).populate({ path: 'author_id', select: {
+            password: 0
+          } })
+            .then(data => {
+              var viewCount = data.view_count + 1;
+              Topic.findOneAndUpdate({ _id: topicId }, { view_count: viewCount })
+                .then(() => {
+                  if (userId) {
+                    User.findOne({ 'collected_topics': topicId, '_id': userId }) // 查询当前用户是否收藏
+                      .then(userData => {
+                        res.json({ // 获取帖子详情成功，更新浏览量成功
+                          success: true,
+                          msg: '获取帖子详情成功',
+                          comment_count: count,
+                          collected: !!userData,
+                          collected_count: collectedCount,
+                          liked: data.liked_users.indexOf(userId) > -1,
+                          liked_count: data.liked_users.length,
+                          data: data
+                        })
+                      })
+                      .catch(err => {
+                        console.log(err)
+                      })
+                  } else {
+                    res.json({ // 获取帖子详情成功，更新浏览量成功
+                      success: true,
+                      msg: '获取帖子详情成功',
+                      collected: false,
+                      comment_count: count,
+                      collected_count: collectedCount,
+                      data: data
+                    })
+                  }
+                })
+                .catch(err => {
+                  res.json({
+                    success: false,
+                    msg: '获取帖子详情成功，但更新浏览量失败',
+                    err: err.toString()
+                  })
+                })
             })
             .catch(err => {
               res.json({
                 success: false,
-                msg: '获取帖子详情成功，但更新浏览量失败',
+                msg: '获取帖子详情失败',
                 err: err.toString()
               })
             })
@@ -265,18 +306,15 @@ router.get('/topic_detail', function (req, res, next) {
         })
     })
     .catch(err => {
-      res.json({
-        success: false,
-        msg: '获取帖子详情失败',
-        err: err.toString()
-      })
+      console.log(err)
     })
 })
 
-router.post('/topic_collect', function (req, res, next) {
+router.post('/topic_collect', function (req, res, next) { // 收藏和取消收藏
   var reqBody = req.body;
   var userId = reqBody.user_id;
   var topicId = reqBody.topic_id;
+  var collected = reqBody.collected;
 
   if (!userId || !topicId) {
     return res.json({
@@ -285,17 +323,50 @@ router.post('/topic_collect', function (req, res, next) {
     })
   }
 
-  User.findOneAndUpdate({ _id: userId }, { $addToSet: { 'collected_topics': topicId } }) // $pull
+  var handleOptions = collected ? { $pull: { 'collected_topics': topicId } } : { $addToSet: { 'collected_topics': topicId } }
+
+  User.findOneAndUpdate({ _id: userId }, handleOptions)
     .then(() => {
       res.json({
         success: true,
-        msg: '收藏成功'
+        msg: collected ? '取消收藏成功' : '收藏成功'
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: '收藏失败',
+        msg: collected ? '取消收藏失败' : '收藏失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/topic_like', function (req, res, next) {
+  var reqBody = req.body;
+  var userId = reqBody.user_id;
+  var topicId = reqBody.topic_id;
+  var liked = reqBody.liked;
+
+  if (!userId || !topicId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var handleOptions = liked ? { $pull: { 'liked_users': userId } } : { $addToSet: { 'liked_users': userId } }
+
+  Topic.findOneAndUpdate({ _id: topicId }, handleOptions)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: liked ? '取消点赞成功' : '点赞成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: liked ? '取消点赞失败' : '点赞失败',
         err: err.toString()
       })
     })
