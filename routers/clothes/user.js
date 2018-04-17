@@ -310,6 +310,37 @@ router.get('/topic_detail', function (req, res, next) {
     })
 })
 
+router.get('/topic_edit_detail', function (req, res, next) {
+  var reqQuery = req.query;
+  var topicId = reqQuery.topic_id;
+
+  if (!topicId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  Topic.findOne({ _id: topicId }, {
+    title: 1,
+    content: 1
+  })
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取帖子详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取帖子详情失败',
+        err: err.toString()
+      })
+    })
+})
+
 router.post('/topic_collect', function (req, res, next) { // 收藏和取消收藏
   var reqBody = req.body;
   var userId = reqBody.user_id;

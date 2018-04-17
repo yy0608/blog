@@ -7,16 +7,19 @@ var router = express.Router();
 
 var qiniuObj = {}; // 当前页的全局对象
 
-router.post('/generate_token', function (req, res, next) {
+router.all('/generate_token', function (req, res, next) {
   var reqBody = req.body;
-  var scope = reqBody.scope || config.qiniuConfig.default_bucket;
-  var expires = parseInt(reqBody.expires);
+  var reqQuery = req.query;
+  var scope = reqBody.scope || reqQuery.scope || config.qiniuConfig.default_bucket;
+  var expires = reqBody.expires || reqQuery.expires;
+  expires = parseInt(expires);
   expires = isNaN(expires) ? 3600 : expires; // 单位秒
   var token = generateToken(scope, expires);
 
   res.json({
     success: true,
     data: token,
+    uptoken: token,
     expires: expires
   })
 })
