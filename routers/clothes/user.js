@@ -85,6 +85,23 @@ router.post('/register', function (req, res, next) {
     })
 })
 
+router.get('/user', function (req, res, next) {
+  var username = req.query.username;
+  User.findOne({
+    username: username
+  }, {
+    createdAt: 0,
+    updatedAt: 0,
+    password: 0
+  }).populate({ path: 'collected_topics' })
+    .then(data => {
+      res.json({
+        success: true,
+        data: data
+      })
+    })
+})
+
 router.post('/login', function (req, res, next) {
   var reqBody = req.body;
   var username = reqBody.username;
@@ -307,7 +324,7 @@ router.get('/topic_detail', function (req, res, next) {
 
   User.count({ 'collected_topics': topicId }) // 查询文章收藏总数
     .then(collectedCount => {
-      Comment.count({ status: -1 })
+      Comment.count({ status: -1, topic_id: topicId })
         .then(count => {
           Topic.findOne({ _id: topicId }).populate({ path: 'author_id', select: {
             password: 0
@@ -341,7 +358,7 @@ router.get('/topic_detail', function (req, res, next) {
                       comment_count: count,
                       collected_count: collectedCount,
                       liked: false,
-                      liked_count: 0,
+                      liked_count: data.liked_users.length,
                       data: data
                     })
                   }

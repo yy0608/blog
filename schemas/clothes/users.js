@@ -27,8 +27,19 @@ module.exports = new mongoose.Schema({
     default: ''
   },
   collected_topics: {
-    type: [mongoose.Schema.Types.ObjectId]
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Topic'
   }
+  // collected_topics: [{
+  //   topic_id: {
+  //     type: mongoose.Schema.Types.ObjectId,
+  //     ref: 'Topic'
+  //   },
+  //   created_ts: {
+  //     type: Number,
+  //     default: Date.now
+  //   }
+  // }]
 }, {
   versionKey: false, // 去掉__v字段
   timestamps: true // 添加创建时间和更新时间
