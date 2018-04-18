@@ -1199,7 +1199,7 @@ router.post('/goods_edit', function (req, res, next) {
     })
 })
 
-router.post('/topic_add', function (req, res, next) {
+router.post('/topic_add', function (req, res, next) { // user.js也有
   var reqBody = req.body;
   var title = reqBody.title;
   var content = reqBody.content;

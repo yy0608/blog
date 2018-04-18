@@ -213,6 +213,69 @@ router.get('/user_list', function (req, res, next) {
     })
 })
 
+router.post('/topic_add', function (req, res, next) {
+  var reqBody = req.body;
+  var title = reqBody.title;
+  var content = reqBody.content;
+  var authorId = reqBody.author_id;
+
+  if (!title || !content || !authorId || !(content instanceof Array)) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var moveTopicImgs = [];
+  var topicDirname = config.qiniuConfig.topicDirname;
+
+  for (var i = 0; i < content.length; i++) { // type: 1为文字，2为图片
+    if (content[i].type === 2) {
+      var tempMoveImgs = [];
+      moveTopicImgs = moveTopicImgs.concat(content[i].value);
+      content[i].value.forEach(function (item, index, arr) {
+        var filename = item.split('/')[item.split('/').length - 1]
+        tempMoveImgs.push(topicDirname + filename);
+        content[i].value = tempMoveImgs;
+      })
+    }
+  }
+
+  var topic = new Topic({
+    title: title,
+    content: content,
+    author_id: authorId
+  })
+
+  topic.save()
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '帖子添加成功',
+        data: {
+          _id: data._id
+        }
+      })
+
+      if (!moveTopicImgs.length) return;
+
+      utils.resourceMoveBatch({
+        srcKeys: moveTopicImgs,
+        destDirname: topicDirname,
+        error: function (err) {
+          utils.writeQiniuErrorLog('批量移动帖子图片失败，err: ' + err)
+        }
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '帖子添加失败',
+        err: err.toString()
+      })
+    })
+})
+
 router.get('/topic_list', function (req, res, next) {
   Topic.find({ status: 0 }).sort({ createdAt: -1 }).populate({ path: 'author_id', select: { username: 1, _id: 0 } })
     .then(data => {
@@ -277,6 +340,8 @@ router.get('/topic_detail', function (req, res, next) {
                       collected: false,
                       comment_count: count,
                       collected_count: collectedCount,
+                      liked: false,
+                      liked_count: 0,
                       data: data
                     })
                   }

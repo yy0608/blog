@@ -38,7 +38,6 @@ app.use(bodyParser.urlencoded({ extended: false }))
 
 // 设置路由组
 app.use('/v1/mp', require('./routers/clothes/mp.js'))
-app.use('/v1/all', require('./routers/clothes/all.js'))
 app.use('/v1/employ', require('./routers/clothes/employ.js'))
 app.use('/v1/merchant', require('./routers/clothes/merchant.js'))
 app.use('/v1/user', require('./routers/clothes/user.js'))
