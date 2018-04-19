@@ -93,7 +93,7 @@ router.get('/user', function (req, res, next) {
     createdAt: 0,
     updatedAt: 0,
     password: 0
-  }).populate({ path: 'collected_topics' })
+  }).populate({ path: 'collected_topics.$' })
     .then(data => {
       res.json({
         success: true,
