@@ -685,7 +685,7 @@ router.post('/shop_edit', function (req, res, next) {
     })
 })
 
-router.get('/near_shops', function (req, res, next) { // 查询附近的店铺，当前位置必传
+router.get('/near_shops', function (req, res, next) { // 查询附近的店铺，当前位置必传，user里也有
   var reqQuery = req.query;
   var parsePage = parseInt(reqQuery.page)
   var parseLimit = parseInt(reqQuery.limit)

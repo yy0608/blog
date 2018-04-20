@@ -5,6 +5,7 @@ var config = require('./config.js');
 var client = global.redisClient;
 var utils = require('../../utils.js');
 
+var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var User = require('../../models/clothes/User.js');
 var Topic = require('../../models/clothes/Topic.js');
 var Comment = require('../../models/clothes/Comment.js');
@@ -208,6 +209,54 @@ router.post('/check_login', function (req, res, next) {
       data: JSON.parse(v)
     })
   })
+})
+
+router.get('/near_shops', function (req, res, next) { // 查询附近的店铺，当前位置必传
+  var reqQuery = req.query;
+  var parsePage = parseInt(reqQuery.page)
+  var parseLimit = parseInt(reqQuery.limit)
+  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
+  var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
+  var skip = (page - 1) * limit
+  if (!reqQuery.location || typeof(reqQuery.location) !== 'string') {
+    res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+    return
+  }
+  var maxDistance = reqQuery.max_distance
+  var locationArr, longitude, longitude
+  locationArr = reqQuery.location.split(',')
+  longitude = parseFloat(locationArr[0])
+  latitude = parseFloat(locationArr[1])
+  var locationRes = [ longitude, latitude ]
+
+  MerchantShop.aggregate([{ // 返回带距离的数据，单位是米
+    '$geoNear': {
+      'near': {
+          'type': 'Point',
+          'coordinates': locationRes
+        },
+      'spherical': true,
+      'distanceField': 'distance_m', // 最后生成的距离字段
+      'limit': limit
+    }
+  }, { '$skip': skip }])
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取附近店铺成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取附近店铺失败',
+        err: err.toString()
+      })
+    })
 })
 
 router.get('/user_list', function (req, res, next) {
