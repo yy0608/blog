@@ -5,10 +5,11 @@ var config = require('./config.js');
 var client = global.redisClient;
 var utils = require('../../utils.js');
 
-var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var User = require('../../models/clothes/User.js');
 var Topic = require('../../models/clothes/Topic.js');
 var Comment = require('../../models/clothes/Comment.js');
+var MerchantShop = require('../../models/clothes/MerchantShop.js');
+var ShopGoods = require('../../models/clothes/ShopGoods.js');
 
 const loginTtl = 1800;
 
@@ -254,6 +255,62 @@ router.get('/near_shops', function (req, res, next) { // 查询附近的店铺�
       res.json({
         success: false,
         msg: '获取附近店铺失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.get('/shop_detail', function (req, res, next) {
+  var _id = req.query.shop_id;
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数'
+    })
+  }
+  MerchantShop.findOne({ _id: _id })
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '店铺不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '查询店铺详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '查询店铺详情出错',
+        err: err.toString()
+      })
+    })
+})
+
+router.get('/goods_list', function (req, res, next) {
+  var queryOptions = req.query.shop_id ? { shop_id: req.query.shop_id } : {}
+  ShopGoods.find(queryOptions).populate([{
+    path: 'merchant_id'
+  }, {
+    path: 'shop_id'
+  }, {
+    path: 'category_id'
+  }])
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取商品列表成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商品列表失败',
         err: err.toString()
       })
     })

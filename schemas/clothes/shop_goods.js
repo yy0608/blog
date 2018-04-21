@@ -24,6 +24,10 @@ module.exports = new mongoose.Schema({
     type: Number,
     required: true
   },
+  cover: {
+    type: String,
+    required: true,
+  },
   figure_imgs: {
     type: [],
     required: true

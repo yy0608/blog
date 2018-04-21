@@ -591,7 +591,7 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
     })
 })
 
-router.get('/shop_detail', function (req, res, next) {
+router.get('/shop_detail', function (req, res, next) { // user.js里也有
   var _id = req.query.shop_id;
   if (!_id) {
     return res.json({
@@ -967,9 +967,11 @@ router.post('/goods_add', function (req, res, next) {
   var categoryId = reqBody.category_id;
   var title = reqBody.title;
   var valuation = reqBody.valuation;
+  var cover = reqBody.cover;
   var figureImgs = reqBody.figure_imgs;
   var detailImgs = reqBody.detail_imgs;
-  if (!shopId || !title || !valuation || !categoryId || !(figureImgs instanceof Array) || !figureImgs.length || !(detailImgs instanceof Array) || !detailImgs.length) {
+
+  if (!shopId || !title || !valuation || !cover || !categoryId || !(figureImgs instanceof Array) || !figureImgs.length || !(detailImgs instanceof Array) || !detailImgs.length) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
@@ -983,6 +985,16 @@ router.post('/goods_add', function (req, res, next) {
           success: false,
           msg: '店铺不存在'
         })
+      }
+
+      var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(reqBody.cover);
+      var originKey = reqBody.cover;
+      var filename = undefined;
+      var destKey = undefined;
+      if (!isWebUrl) {
+        filename = reqBody.cover.split('/')[reqBody.cover.split('/').length - 1];
+        destKey = config.qiniuConfig.goodsCoverDirname + filename;
+        reqBody.cover = destKey
       }
 
       // 商品轮播图部分
@@ -1007,6 +1019,7 @@ router.post('/goods_add', function (req, res, next) {
         category_id: categoryId,
         title: title,
         valuation: valuation,
+        cover: reqBody.cover,
         figure_imgs: movedFigureImgs,
         detail_imgs: movedDetailImgs,
         created_ts: Date.now()
@@ -1018,6 +1031,16 @@ router.post('/goods_add', function (req, res, next) {
             _id: data._id,
             msg: '商品添加成功'
           })
+
+          if (!isWebUrl) {
+            utils.resourceMove({
+              srcKey: originKey,
+              destKey: destKey,
+              error: function (err) {
+                utils.writeQiniuErrorLog('单个移动商品logo出错，err: ' + err)
+              }
+            })
+          }
 
           utils.resourceMoveBatch({
             srcKeys: figureImgs,
@@ -1051,7 +1074,7 @@ router.post('/goods_add', function (req, res, next) {
     })
 })
 
-router.get('/goods_list', function (req, res, next) {
+router.get('/goods_list', function (req, res, next) { // user.js也有
   var queryOptions = req.query.shop_id ? { shop_id: req.query.shop_id } : {}
   ShopGoods.find(queryOptions).populate([{
     path: 'merchant_id'
@@ -1112,17 +1135,47 @@ router.post('/goods_edit', function (req, res, next) {
   var _id = reqBody.goods_id;
   var title = reqBody.title;
   var valuation = reqBody.valuation;
+  var cover = reqBody.cover;
   var figureImgs = reqBody.figure_imgs;
   var detailImgs = reqBody.detail_imgs;
   var originFigureImgs = reqBody.origin_figure_imgs;
   var originDetailImgs = reqBody.origin_detail_imgs;
 
-  if (!_id || !title || !valuation || !figureImgs || !detailImgs || !originFigureImgs || !originDetailImgs) {
+  if (!_id || !title || !valuation || !cover || !figureImgs || !detailImgs || !originFigureImgs || !originDetailImgs) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
   }
+
+  if (cover && cover !== reqBody.origin_cover) {
+    var isWebUrl = /(http:\/\/)|(https:\/\/)/.test(cover);
+    var originKey = cover;
+    var filename = undefined;
+    var destKey = undefined;
+    if (!isWebUrl) {
+      utils.resourceDelete({ // 删除cover
+        key: reqBody.origin_cover,
+        success: function (res) {
+          filename = cover.split('/')[cover.split('/').length - 1];
+          destKey = config.qiniuConfig.goodsCoverDirname + filename;
+          reqBody.cover = destKey
+
+          utils.resourceMove({ // 移动cover
+            srcKey: originKey,
+            destKey: destKey,
+            error: function (err) {
+              utils.writeQiniuErrorLog('修改商品cover图，单个移动过程失败，err: ' + err)
+            }
+          })
+        },
+        error: function (err) {
+          utils.writeQiniuErrorLog('修改商品cover图，单个删除过程失败，err: ' + err)
+        }
+      })
+    }
+  }
+  delete reqBody.origin_cover
 
   var figureImgsInter = utils.getIntersection(figureImgs, originFigureImgs)
   var detailImgsInter = utils.getIntersection(detailImgs, originDetailImgs)
@@ -1154,6 +1207,7 @@ router.post('/goods_edit', function (req, res, next) {
   ShopGoods.findOneAndUpdate({ _id: _id }, {
     title: title,
     valuation: valuation,
+    cover: reqBody.cover,
     figure_imgs: utils.changeQiniuFilename(figureImgs, goodsFigureDirname),
     detail_imgs: utils.changeQiniuFilename(detailImgs, goodsDetailDirname)
   })

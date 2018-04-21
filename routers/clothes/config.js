@@ -16,6 +16,7 @@ module.exports = {
     imgOrigin: 'http://img.wsweat.cn/',
     shopLogoDirname: 'clothes/shop/logo/',
     categoryIconDirname: 'clothes/category/icon/',
+    goodsCoverDirname: 'clothes/goods/cover/',
     goodsFigureDirname: 'clothes/goods/figure/',
     goodsDetailDirname: 'clothes/goods/detail/',
     topicDirname: 'clothes/topic/',
