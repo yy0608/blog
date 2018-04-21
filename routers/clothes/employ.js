@@ -1099,7 +1099,7 @@ router.get('/goods_list', function (req, res, next) { // user.js也有
     })
 })
 
-router.get('/goods_detail', function (req, res, next) {
+router.get('/goods_detail', function (req, res, next) { // user.js也有
   var _id = req.query._id
   if (!_id) {
     return res.json({

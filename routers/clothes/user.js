@@ -316,6 +316,37 @@ router.get('/goods_list', function (req, res, next) {
     })
 })
 
+router.get('/goods_detail', function (req, res, next) { // user.js也有
+  var _id = req.query._id
+  if (!_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+  ShopGoods.findOne({ _id: _id }).populate([{ path: 'category_id' }, { path: 'shop_id', select: { name: 1 } }])
+    .then(data => {
+      if (!data) {
+        return res.json({
+          success: false,
+          msg: '获取商品详情失败，商品不存在'
+        })
+      }
+      res.json({
+        success: true,
+        msg: '获取商品详情成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '获取商品详情失败',
+        err: err.toString()
+      })
+    })
+})
+
 router.get('/user_list', function (req, res, next) {
   var findAdmin = req.query.find_admin;
   var findOptions = findAdmin ? { is_admin: true } : {}
