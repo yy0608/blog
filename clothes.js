@@ -44,11 +44,9 @@ app.use('/v1/user', require('./routers/clothes/user.js'))
 app.use('/v1/qiniu', require('./routers/clothes/qiniu.js'))
 
 // 连接数据库
-mongoose.connect('mongodb://youyi:yy0608@localhost:27017/clothes', { // 开发
-// mongoose.connect('mongodb://youyi:yy0608@114.67.129.172:27017/clothes_test', { // 测试 114.67.129.172
-// mongoose.connect('mongodb://youyi:yy0608@114.67.129.172:27017/clothes_test', { // 线上 114.67.129.172
-  useMongoClient: true
-}, function(err) {
+mongoose.connect('mongodb://youyi:yy0608@localhost:27017/clothes', function(err) { // 开发
+  // mongoose.connect('mongodb://youyi:yy0608@114.67.129.172:27017/clothes_test', { // 测试 114.67.129.172
+  // mongoose.connect('mongodb://youyi:yy0608@114.67.129.172:27017/clothes_test', { // 线上 114.67.129.172
   if (err) {
     console.log('数据库连接失败')
   } else {

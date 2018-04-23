@@ -45,6 +45,14 @@ var utils = {
     }
     return str;
   },
+  filterEmptyValue: function (obj) {
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key) && (obj[key] == null || obj[key] == undefined || obj[key] == '')) {
+        delete obj[key];
+      }
+    }
+    return obj
+  },
   getIntersection: function (a, b) { // 数组交集
     return a.filter(function (v) {
       return b.includes(v)

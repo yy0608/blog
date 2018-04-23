@@ -851,7 +851,7 @@ router.post('/category_add', function (req, res, next) {
   })
 })
 
-router.get('/goods_categories', function (req, res, next) {
+router.get('/goods_categories', function (req, res, next) { // user.js也有
   var reqQuery = req.query;
   var level = reqQuery.level;
   var sort = null;
@@ -922,14 +922,15 @@ router.post('/category_edit', function (req, res, next) {
     var originKey = reqBody.icon;
     var filename = undefined;
     var destKey = undefined;
+
+    filename = reqBody.icon.split('/')[reqBody.icon.split('/').length - 1];
+    destKey = config.qiniuConfig.categoryIconDirname + filename;
+    reqBody.icon = destKey
+
     if (!isWebUrl) {
       utils.resourceDelete({ // 删除icon
         key: reqBody.origin_icon,
         success: function (res) {
-          filename = reqBody.icon.split('/')[reqBody.icon.split('/').length - 1];
-          destKey = config.qiniuConfig.categoryIconDirname + filename;
-          reqBody.icon = destKey
-
           utils.resourceMove({ // 移动logo
             srcKey: originKey,
             destKey: destKey,
@@ -1075,7 +1076,13 @@ router.post('/goods_add', function (req, res, next) {
 })
 
 router.get('/goods_list', function (req, res, next) { // user.js也有
-  var queryOptions = req.query.shop_id ? { shop_id: req.query.shop_id } : {}
+  var reqQuery = req.query;
+  var shopId = reqQuery.shop_id;
+  var categoryId = reqQuery.category_id;
+  var queryOptions = utils.filterEmptyValue({
+    shop_id: shopId,
+    category_id: categoryId
+  })
   ShopGoods.find(queryOptions).populate([{
     path: 'merchant_id'
   }, {
@@ -1107,7 +1114,7 @@ router.get('/goods_detail', function (req, res, next) { // user.js也有
       msg: '缺少参数或参数错误'
     })
   }
-  ShopGoods.findOne({ _id: _id }).populate({ path: 'category_id' })
+  ShopGoods.findOne({ _id: _id }).populate([{ path: 'category_id' }, { path: 'shop_id', select: { name: 1 } }])
     .then(data => {
       if (!data) {
         return res.json({

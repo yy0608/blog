@@ -26,10 +26,17 @@ module.exports = new mongoose.Schema({
     type: String,
     default: ''
   },
+  collected_topics: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Topic'
+  }]
+  /*错误示例！！！！！！！！！
   collected_topics: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'Topic'
   }
+  */
+
   // collected_topics: [{
   //   topic_id: {
   //     type: mongoose.Schema.Types.ObjectId,

@@ -8,6 +8,7 @@ var utils = require('../../utils.js');
 var User = require('../../models/clothes/User.js');
 var Topic = require('../../models/clothes/Topic.js');
 var Comment = require('../../models/clothes/Comment.js');
+var GoodsCategory = require('../../models/clothes/GoodsCategory.js');
 var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var ShopGoods = require('../../models/clothes/ShopGoods.js');
 
@@ -87,7 +88,7 @@ router.post('/register', function (req, res, next) {
     })
 })
 
-router.get('/user', function (req, res, next) {
+router.get('/user', function (req, res, next) { // 测试数组populate的接口，可删除
   var username = req.query.username;
   User.findOne({
     username: username
@@ -95,13 +96,26 @@ router.get('/user', function (req, res, next) {
     createdAt: 0,
     updatedAt: 0,
     password: 0
-  }).populate({ path: 'collected_topics.$' })
+  }).populate({
+    path: 'collected_topics',
+    options: {
+      limit: 2,
+      sort: { createdAt: -1 },
+      skip: 0
+    }
+  })
     .then(data => {
       res.json({
         success: true,
         data: data
       })
     })
+    .catch(err => {
+      console.log(err)
+    })
+    // .exec(function (err, res) {
+    //   console.log(err, res)
+    // })
 })
 
 router.post('/login', function (req, res, next) {
@@ -291,8 +305,39 @@ router.get('/shop_detail', function (req, res, next) {
     })
 })
 
+router.get('/goods_categories', function (req, res, next) {
+  var reqQuery = req.query;
+  var level = reqQuery.level;
+  var sort = null;
+  try {
+    sort = JSON.parse(reqQuery.sort);
+  } catch (e) {
+    sort = { createdAt: 1 };
+  }
+  var conditions = level ? { level: level } : {};
+  GoodsCategory.find(conditions).sort(sort)
+    .then(data => {
+      res.json({
+        success: true,
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        err: err
+      })
+    })
+})
+
 router.get('/goods_list', function (req, res, next) {
-  var queryOptions = req.query.shop_id ? { shop_id: req.query.shop_id } : {}
+  var reqQuery = req.query;
+  var shopId = reqQuery.shop_id;
+  var categoryId = reqQuery.category_id;
+  var queryOptions = utils.filterEmptyValue({
+    shop_id: shopId,
+    category_id: categoryId
+  })
   ShopGoods.find(queryOptions).populate([{
     path: 'merchant_id'
   }, {
