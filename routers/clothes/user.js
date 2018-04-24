@@ -88,6 +88,41 @@ router.post('/register', function (req, res, next) {
     })
 })
 
+router.get('/user_detail', function (req, res, next) {
+  var reqQuery = req.query;
+  var username = reqQuery.username;
+  var _id = reqQuery._id;
+
+  if (!username && !_id) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  User.findOne(utils.filterEmptyValue({
+    username: username,
+    _id: _id
+  }), {
+    createdAt: 0,
+    updatedAt: 0,
+    password: 0
+  }).populate(['collected_topics', 'collected_goods', 'concerned_shops'])
+    .then(data => {
+      res.json({
+        success: true,
+        msg: '获取用户信息成功',
+        data: data
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        err: err.toString()
+      })
+    })
+})
+
 router.get('/user', function (req, res, next) { // 测试数组populate的接口，可删除
   var username = req.query.username;
   User.findOne({
@@ -96,14 +131,16 @@ router.get('/user', function (req, res, next) { // 测试数组populate的接口
     createdAt: 0,
     updatedAt: 0,
     password: 0
-  }).populate({
+  }).populate([{
     path: 'collected_topics',
     options: {
       limit: 2,
       sort: { createdAt: -1 },
       skip: 0
     }
-  })
+  }, {
+    path: 'collected_goods'
+  }])
     .then(data => {
       res.json({
         success: true,
@@ -362,14 +399,18 @@ router.get('/goods_list', function (req, res, next) {
 })
 
 router.get('/goods_detail', function (req, res, next) { // user.js也有
-  var _id = req.query._id
-  if (!_id) {
+  var reqQuery = req.query;
+  var goodsId = reqQuery.goods_id;
+  var shopId = reqQuery.shop_id;
+  var userId = reqQuery.user_id;
+
+  if (!goodsId || !shopId) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
   }
-  ShopGoods.findOne({ _id: _id }).populate([{ path: 'category_id' }, { path: 'shop_id', select: { name: 1 } }])
+  ShopGoods.findOne({ _id: goodsId }).populate([{ path: 'category_id' }, { path: 'shop_id', select: { name: 1, address: 1 } }])
     .then(data => {
       if (!data) {
         return res.json({
@@ -377,11 +418,47 @@ router.get('/goods_detail', function (req, res, next) { // user.js也有
           msg: '获取商品详情失败，商品不存在'
         })
       }
-      res.json({
-        success: true,
-        msg: '获取商品详情成功',
-        data: data
-      })
+      if (!userId) { // 用户未登录
+        return res.json({
+          success: true,
+          msg: '获取商品详情成功',
+          goods_collected: false,
+          shop_concerned: false,
+          data: data
+        })
+      }
+      User.findOne({ 'collected_goods': goodsId, '_id': userId }) // 查询商品收藏
+        .then(goodsData => {
+          User.findOne({ 'concerned_shops': shopId, '_id': userId }) // 查询店铺关注
+            .then(shopData => {
+              res.json({
+                success: true,
+                msg: '获取商品详情成功',
+                goods_collected: !!goodsData,
+                shop_concerned: !!shopData,
+                data: data
+              })
+            })
+            .catch(err => {
+              res.json({
+                success: true,
+                msg: '获取商品详情成功，查询商品收藏成功，但查询店铺关注失败',
+                goods_collected: !!goodsData,
+                shop_concerned: false,
+                data: data
+              })
+            })
+        })
+        .catch(err => {
+          res.json({
+            success: true,
+            msg: '获取商品详情成功，但查询是否收藏失败',
+            err: err.toString(),
+            goods_collected: false,
+            shop_concerned: false,
+            data: data
+          })
+        })
     })
     .catch(err => {
       res.json({
@@ -605,7 +682,38 @@ router.get('/topic_edit_detail', function (req, res, next) {
     })
 })
 
-router.post('/topic_collect', function (req, res, next) { // 收藏和取消收藏
+router.post('/topic_like', function (req, res, next) {
+  var reqBody = req.body;
+  var userId = reqBody.user_id;
+  var topicId = reqBody.topic_id;
+  var liked = reqBody.liked;
+
+  if (!userId || !topicId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var handleOptions = liked ? { $pull: { 'liked_users': userId } } : { $addToSet: { 'liked_users': userId } }
+
+  Topic.findOneAndUpdate({ _id: topicId }, handleOptions)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: liked ? '取消点赞成功' : '点赞成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: liked ? '取消点赞失败' : '点赞失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/topic_collect', function (req, res, next) { // 帖子收藏和取消收藏
   var reqBody = req.body;
   var userId = reqBody.user_id;
   var topicId = reqBody.topic_id;
@@ -636,32 +744,63 @@ router.post('/topic_collect', function (req, res, next) { // 收藏和取消收�
     })
 })
 
-router.post('/topic_like', function (req, res, next) {
+router.post('/goods_collect', function (req, res, next) { // 店铺收藏和取消收藏
   var reqBody = req.body;
   var userId = reqBody.user_id;
-  var topicId = reqBody.topic_id;
-  var liked = reqBody.liked;
+  var goodsId = reqBody.goods_id;
+  var collected = reqBody.collected;
 
-  if (!userId || !topicId) {
+  if (!userId || !goodsId) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
   }
 
-  var handleOptions = liked ? { $pull: { 'liked_users': userId } } : { $addToSet: { 'liked_users': userId } }
+  var handleOptions = collected ? { $pull: { 'collected_goods': goodsId } } : { $addToSet: { 'collected_goods': goodsId } }
 
-  Topic.findOneAndUpdate({ _id: topicId }, handleOptions)
+  User.findOneAndUpdate({ _id: userId }, handleOptions)
     .then(() => {
       res.json({
         success: true,
-        msg: liked ? '取消点赞成功' : '点赞成功'
+        msg: collected ? '取消收藏成功' : '收藏成功'
       })
     })
     .catch(err => {
       res.json({
         success: false,
-        msg: liked ? '取消点赞失败' : '点赞失败',
+        msg: collected ? '取消收藏失败' : '收藏失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/shop_concern', function (req, res, next) { // 店铺收藏和取消收藏
+  var reqBody = req.body;
+  var userId = reqBody.user_id;
+  var shopId = reqBody.shop_id;
+  var concerned = reqBody.concerned;
+
+  if (!userId || !shopId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var handleOptions = concerned ? { $pull: { 'concerned_shops': shopId } } : { $addToSet: { 'concerned_shops': shopId } }
+
+  User.findOneAndUpdate({ _id: userId }, handleOptions)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: concerned ? '取消关注成功' : '关注成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: concerned ? '取消关注失败' : '关注失败',
         err: err.toString()
       })
     })

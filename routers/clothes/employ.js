@@ -1114,7 +1114,7 @@ router.get('/goods_detail', function (req, res, next) { // user.js也有
       msg: '缺少参数或参数错误'
     })
   }
-  ShopGoods.findOne({ _id: _id }).populate([{ path: 'category_id' }, { path: 'shop_id', select: { name: 1 } }])
+  ShopGoods.findOne({ _id: _id }).populate([{ path: 'category_id' }, { path: 'shop_id' }])
     .then(data => {
       if (!data) {
         return res.json({

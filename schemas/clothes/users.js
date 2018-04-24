@@ -29,7 +29,7 @@ module.exports = new mongoose.Schema({
   collected_topics: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Topic'
-  }]
+  }],
   /*错误示例！！！！！！！！！
   collected_topics: {
     type: [mongoose.Schema.Types.ObjectId],
@@ -47,6 +47,15 @@ module.exports = new mongoose.Schema({
   //     default: Date.now
   //   }
   // }]
+
+  collected_goods: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ShopGoods'
+  }],
+  concerned_shops: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MerchantShop'
+  }]
 }, {
   versionKey: false, // 去掉__v字段
   timestamps: true // 添加创建时间和更新时间
