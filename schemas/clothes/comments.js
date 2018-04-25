@@ -19,10 +19,10 @@ module.exports = new mongoose.Schema({
     type: Number,
     default: -1
   },
-  like_count: { // 点赞量
-    type: Number,
-    default: 0
-  }
+  liked_users: [{ // 点赞
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 }, {
   versionKey: false, // 去掉__v字段
   timestamps: true // 添加创建时间和更新时间

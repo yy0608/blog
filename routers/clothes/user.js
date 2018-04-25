@@ -4,6 +4,7 @@ var crypto = require('crypto');
 var config = require('./config.js');
 var client = global.redisClient;
 var utils = require('../../utils.js');
+var QcloudSms = require("qcloudsms_js") // 腾讯云短信服务
 
 var User = require('../../models/clothes/User.js');
 var Topic = require('../../models/clothes/Topic.js');
@@ -13,6 +14,7 @@ var MerchantShop = require('../../models/clothes/MerchantShop.js');
 var ShopGoods = require('../../models/clothes/ShopGoods.js');
 
 const loginTtl = 1800;
+let ssender = undefined;
 
 router.use(function (req, res, next) {
 
@@ -36,40 +38,125 @@ router.use(function (req, res, next) {
   }
 })
 
+router.post('/register_sms', function (req, res, next) { // 添加商家时也会有发送验证码
+  var reqBody = req.body
+  var phone = reqBody.phone
+  if (!(/^1[34578]\d{9}$/.test(phone))) {
+    return res.json({
+      success: false,
+      msg: '手机号错误'
+    })
+  }
+
+  User.findOne({ username: phone })
+    .then(data => {
+      if (data) {
+        return res.json({
+          success: false,
+          msg: '用户名已存在'
+        })
+      }
+
+      var code = Math.random().toString().substr(2, 6)
+
+      var smsConfig = config.smsConfig;
+      var qcloudsms = QcloudSms(smsConfig.appid, smsConfig.appkey)
+      var code = Math.random().toString().substr(2, 6)
+      ssender = ssender || qcloudsms.SmsSingleSender() // 单发短信
+      // ssender = ssender || qcloudsms.SmsMultiSender() // 群发短信
+      ssender.send(smsConfig.smsType, 86, phone, code + " 为您的登录验证码，请于 2 分钟内填写。如非本人操作，请忽略本短信。", "", "", function (err, response, resData) {
+        if (err) {
+          res.json({
+            success: false,
+            msg: '验证码发送失败',
+            err: err
+          })
+        } else {
+          if (resData.result) {
+            res.json({
+              success: false,
+              msg: '验证码发送失败',
+              err: resData
+            })
+          } else {
+            global.redisClient.set('register-' + phone, code, function (err, res) {
+              global.redisClient.expire('register-' + phone, 120)
+            })
+            res.json({
+              success: true,
+              msg: '验证码发送成功',
+              data: resData
+            })
+          }
+        }
+      });
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: '验证码发送失败',
+        err: err.toString()
+      })
+    })
+})
+
 router.post('/register', function (req, res, next) {
   var reqBody = req.body;
   var username = reqBody.username;
   var password = reqBody.password;
+  var code = reqBody.code;
 
-  if (!(/^1[34578]\d{9}$/.test(username)) || !password) {
+  if (!(/^1[34578]\d{9}$/.test(username)) || !password || !code) {
     return res.json({
       success: false,
       msg: '缺少参数或参数错误'
     })
   }
 
-  User.findOne({ username: username })
-    .then(data => {
-      if (data) {
-        return res.json({
-          success: true,
-          msg: '用户名已存在'
-        })
-      }
-
-      var hash = crypto.createHash('md5');
-      hash.update(config.passwordKey.left + password + config.passwordKey.right);
-
-      var user = new User({
-        ...reqBody,
-        password: hash.digest('hex')
+  global.redisClient.get('register-' + username, function (err, v) {
+    if (err) {
+      return res.json({
+        success: false,
+        msg: 'redis处理异常'
       })
-      user.save()
-        .then(() => {
-          res.json({
-            success: true,
-            msg: '注册成功'
+    }
+    if (v !== code) {
+      res.json({
+        success: false,
+        msg: '短信验证码错误或失效'
+      })
+    } else {
+      redisClient.del('register-' + username); // 删除
+      User.findOne({ username: username })
+        .then(data => {
+          if (data) {
+            return res.json({
+              success: false,
+              msg: '用户名已存在'
+            })
+          }
+
+          var hash = crypto.createHash('md5');
+          hash.update(config.passwordKey.left + password + config.passwordKey.right);
+
+          var user = new User({
+            ...reqBody,
+            password: hash.digest('hex')
           })
+          user.save()
+            .then(() => {
+              res.json({
+                success: true,
+                msg: '注册成功'
+              })
+            })
+            .catch(err => {
+              res.json({
+                success: false,
+                msg: '注册失败',
+                err: err.toString()
+              })
+            })
         })
         .catch(err => {
           res.json({
@@ -78,14 +165,8 @@ router.post('/register', function (req, res, next) {
             err: err.toString()
           })
         })
-    })
-    .catch(err => {
-      res.json({
-        success: false,
-        msg: '注册失败',
-        err: err.toString()
-      })
-    })
+    }
+  })
 })
 
 router.get('/user_detail', function (req, res, next) {
@@ -858,6 +939,37 @@ router.get('/comment_list', function (req, res, next) {
       res.json({
         success: false,
         msg: '查询评论列表失败',
+        err: err.toString()
+      })
+    })
+})
+
+router.post('/comment_like', function (req, res, next) {
+  var reqBody = req.body;
+  var userId = reqBody.user_id;
+  var commentId = reqBody.comment_id;
+  var liked = reqBody.liked;
+
+  if (!userId || !commentId) {
+    return res.json({
+      success: false,
+      msg: '缺少参数或参数错误'
+    })
+  }
+
+  var handleOptions = liked ? { $pull: { 'liked_users': userId } } : { $addToSet: { 'liked_users': userId } }
+
+  Comment.findOneAndUpdate({ _id: commentId }, handleOptions)
+    .then(() => {
+      res.json({
+        success: true,
+        msg: liked ? '取消点赞成功' : '点赞成功'
+      })
+    })
+    .catch(err => {
+      res.json({
+        success: false,
+        msg: liked ? '取消点赞失败' : '点赞失败',
         err: err.toString()
       })
     })

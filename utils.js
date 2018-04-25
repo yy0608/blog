@@ -63,6 +63,26 @@ var utils = {
       return !a.includes(v) || !b.includes(v)
     })
   },
+  success: function (res, msg, data) {
+    res.json({
+      success: true,
+      msg: msg,
+      data: data
+    })
+  },
+  fail: function (res, msg) {
+    res.json({
+      success: false,
+      msg: msg === 1 ? '缺少参数或参数错误' : msg
+    })
+  },
+  error: function (res, msg, err) {
+    res.json({
+      success: false,
+      msg: msg,
+      err: err.toString()
+    })
+  },
   writeQiniuErrorLog: function (msg) {
 
     var filepath = __dirname + '/logs/qiniu_error.log';
