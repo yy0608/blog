@@ -1,7 +1,7 @@
 var express = require('express');
 var qiniu = require('qiniu');
 
-var config = require('./config.js');
+var config = require('../../config/clothes.config.js');
 
 var router = express.Router();
 

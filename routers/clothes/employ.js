@@ -1,10 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var session = require('express-session');
-var axios = require('axios');
 var crypto = require('crypto');
 var CaptchaSDK = require('dx-captcha-sdk') // 顶象滑动验证码
-var QcloudSms = require("qcloudsms_js") // 腾讯云短信服务
+// var QcloudSms = require("qcloudsms_js") // 腾讯云短信服务
 
 var RedisStore = require('connect-redis')(session);
 
@@ -17,10 +16,10 @@ var Topic = require('../../models/clothes/Topic.js');
 var User = require('../../models/clothes/User.js');
 
 var utils = require('../../utils.js');
-var config = require('./config.js');
+var config = require('../../config/clothes.config.js');
 
-var ssender = undefined;
-var accessKey = undefined, secretKey = undefined, mac = undefined, resourceConfig = undefined, bucketManager = undefined
+// var ssender = undefined;
+// var accessKey = undefined, secretKey = undefined, mac = undefined, resourceConfig = undefined, bucketManager = undefined
 
 router.use(session({
   secret: 'clothes_session',
@@ -37,6 +36,8 @@ router.use(session({
   saveUninitialized: false // 初始化session时是否保存到存储
 }))
 
+router.use(require('./common.js'));
+
 router.post('/login', function (req, res, next) {
   var reqBody = req.body;
   if (JSON.stringify(reqBody) === '{}' && req.session.userInfo) {
@@ -44,11 +45,6 @@ router.post('/login', function (req, res, next) {
     try {
       userInfo = JSON.parse(req.session.userInfo)
       utils.success(res, '登录状态有效', userInfo)
-      // res.json({
-      //   success: true,
-      //   msg: '登录状态有效',
-      //   user_info: userInfo
-      // })
     } catch (e) {
       utils.fail(res, '解析错误')
     }
@@ -75,17 +71,8 @@ router.post('/login', function (req, res, next) {
           if (data) {
             req.session.userInfo = JSON.stringify(data)
             utils.success(res, '登录成功', data)
-            // res.json({
-            //   success: true,
-            //   msg: '登录成功',
-            //   user_info: data
-            // })
           } else { // 用户不存在
             utils.fail(res, '用户名或密码错误')
-            // res.json({
-            //   success: false,
-            //   msg: '用户名或密码错误'
-            // })
           }
         })
         .catch(err => {
@@ -161,57 +148,6 @@ router.get('/user_list', function (req, res, next) {
     })
 })
 
-router.post('/add_merchant_sms', function (req, res, next) { // 添加商家时发送短信验证码
-  var reqBody = req.body
-  var phone = reqBody.phone
-  if (!(/^1[34578]\d{9}$/.test(phone))) {
-    return utils.fail(res, '手机号格式错误')
-  }
-
-  MerchantUser.findOne({
-    phone: phone
-  })
-    .then(data => {
-      if (data) {
-        return utils.fail(res, '手机号已注册')
-      }
-
-      var code = Math.random().toString().substr(2, 6)
-      // console.log(code)
-
-      // global.redisClient.set(phone, code, function (err, res) {
-      //   global.redisClient.expire(phone, 120)
-      // })
-      // res.json({
-      //   success: true,
-      //   msg: '短信发送成功'
-      // })
-      // return;
-
-      var smsConfig = config.smsConfig;
-      var qcloudsms = QcloudSms(smsConfig.appid, smsConfig.appkey)
-      var code = Math.random().toString().substr(2, 6)
-      ssender = ssender || qcloudsms.SmsSingleSender() // 单发短信
-      // ssender = ssender || qcloudsms.SmsMultiSender() // 群发短信
-      ssender.send(smsConfig.smsType, 86, phone, code + " 为您的商家注册验证码，请于 2 分钟内填写。如非本人操作，请忽略本短信。", "", "", function (err, response, resData) {
-        if (err) {
-          return utils.error(res, '验证码发送失败', err)
-        }
-        if (resData.result) { // 待优化
-          utils.error(res, '验证码发送失败', resData)
-        } else {
-          global.redisClient.set('merchant-add-' + phone, code, function (err, res) {
-            global.redisClient.expire('merchant-add-' + phone, 120)
-          })
-          utils.success(res, '验证码发送成功', resData)
-        }
-      });
-    })
-    .catch(err => {
-      utils.error(res, '验证码发送失败', err)
-    })
-})
-
 router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var reqBody = req.body;
   var phone = reqBody.phone && reqBody.phone.trim();
@@ -221,19 +157,20 @@ router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var address = reqBody.address;
   var desc = reqBody.desc;
   var code = reqBody.code;
+  var redisPrefix = config.redisPrefix.register
 
   if (!(/^1[34578]\d{9}$/.test(phone)) || !manager || !email || !name || !address || !code) {
     return utils.fail(res, 1)
   }
 
-  global.redisClient.get('merchant-add-' + phone, function (err, v) {
+  global.redisClient.get(redisPrefix + phone, function (err, v) {
     if (err) {
       return utils.fail(res, 'redis处理异常')
     }
     if (v !== code) {
       return utils.fail(res, '短信验证码错误或失效')
     }
-    redisClient.del('merchant-add-' + phone); // 删除
+    redisClient.del(redisPrefix + phone); // 删除
     MerchantUser.findOne({
       phone: phone
     })
@@ -425,24 +362,9 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
       } else {
         var populateOptions = reqQuery.merchant_id ? '' : {
           path: 'merchant_id',
-          select: {
-            password: 0
-          },
-          options: {
-            limit: 1
-          }
+          select: { password: 0 },
+          options: { limit: 1 }
         };
-        // MerchantShop.find(conditions).populate(populateOptions).limit(limit).skip(skip).sort({ _id: -1 })
-        //   .exec(function (err, shops) {
-        //     if (err) return console.log(err)
-        //     shops = shops.filter(function (shop) {
-        //       return shop.merchant_id
-        //     })
-        //     res.json({
-        //       data: shops,
-        //       msg: '123123sdf'
-        //     })
-        //   })
         MerchantShop.find(conditions).limit(limit).skip(skip).populate(populateOptions).sort({ _id: -1 })
           .then(data => {
             res.json({
@@ -456,24 +378,6 @@ router.get('/merchant_shops', function (req, res, next) { // 查询店铺列表�
             utils.error(res, '获取店铺列表出错', err)
           })
       }
-    })
-})
-
-router.get('/shop_detail', function (req, res, next) { // user.js里也有
-  var _id = req.query.shop_id;
-  if (!_id) {
-    return utils.fail(res, 1)
-  }
-  MerchantShop.findOne({ _id: _id })
-    .then(data => {
-      if (!data) {
-        return utils.fail(res, '获取店铺列表出错')
-      }
-
-      utils.success(res, '查询店铺详情成功')
-    })
-    .catch(err => {
-      utils.error(res, '查询店铺详情出错', err)
     })
 })
 
@@ -528,78 +432,6 @@ router.post('/shop_edit', function (req, res, next) {
     .catch(err => {
       utils.error(res, '店铺修改失败', err)
     })
-})
-
-router.get('/near_shops', function (req, res, next) { // 查询附近的店铺，当前位置必传，user里也有
-  var reqQuery = req.query;
-  var parsePage = parseInt(reqQuery.page)
-  var parseLimit = parseInt(reqQuery.limit)
-  var page = isNaN(parsePage) || parsePage <= 0 ? 1 : parsePage
-  var limit = isNaN(parseLimit) ? config.pageLimit : parseLimit
-  var skip = (page - 1) * limit
-  if (!reqQuery.location || typeof(reqQuery.location) !== 'string') {
-    return utils.fail(res, 1)
-  }
-  var maxDistance = reqQuery.max_distance
-  var locationArr, longitude, longitude
-  locationArr = reqQuery.location.split(',')
-  longitude = parseFloat(locationArr[0])
-  latitude = parseFloat(locationArr[1])
-  var locationRes = [ longitude, latitude ]
-  // var locationOptions = maxDistance ? {
-  //   $nearSphere: locationRes,
-  //   $maxDistance: parseFloat(maxDistance) / 6371 // 此处要转换为弧度，6371为地球半径，单位km
-  // } : { $nearSphere: locationRes }
-
-  MerchantShop.aggregate([{ // 返回带距离的数据，单位是米
-    '$geoNear': {
-      'near': {
-          'type': 'Point',
-          'coordinates': locationRes
-        },
-      'spherical': true,
-      'distanceField': 'distance_m', // 最后生成的距离字段
-      'limit': limit
-    }
-  }, { '$skip': skip }])
-    .then(data => {
-      utils.success(res, '获取附近店铺成功', data)
-    })
-    .catch(err => {
-      utils.error(res, '获取附近店铺失败', err)
-    })
-
-  // MerchantShop.geoNear(locationRes, { spherical: true, limit: limit}) // 返回带距离的数据，单位是弧度，要乘以地球半径8371，但是没有skip参数
-  //   .then(data => {
-  //     res.json({
-  //       success: true,
-  //       msg: '获取附近店铺成功',
-  //       data: data
-  //     })
-  //   })
-  //   .catch(err => {
-  //     res.json({
-  //       success: false,
-  //       mag: '获取附近店铺失败',
-  //       err: err.toString()
-  //     })
-  //   })
-
-  // MerchantShop.find({ 'location': locationOptions }).limit(limit).skip(skip) // 返回不带距离的数据
-  //   .then(data => {
-  //     res.json({
-  //       success: true,
-  //       msg: '获取附近店铺成功',
-  //       data: data
-  //     })
-  //   })
-  //   .catch(err => {
-  //     res.json({
-  //       success: false,
-  //       mag: '获取附近店铺失败',
-  //       err: err.toString()
-  //     })
-  //   })
 })
 
 router.post('/category_add', function (req, res, next) {
@@ -666,25 +498,6 @@ router.post('/category_add', function (req, res, next) {
   }).catch(err => {
     utils.error(res, '添加分类失败', err)
   })
-})
-
-router.get('/goods_categories', function (req, res, next) { // user.js也有
-  var reqQuery = req.query;
-  var level = reqQuery.level;
-  var sort = null;
-  try {
-    sort = JSON.parse(reqQuery.sort);
-  } catch (e) {
-    sort = { createdAt: 1 };
-  }
-  var conditions = level ? { level: level } : {};
-  GoodsCategory.find(conditions).sort(sort)
-    .then(data => {
-      utils.success(res, '获取分类列表成功', data)
-    })
-    .catch(err => {
-      utils.error(res, '获取分类列表失败', err)
-    })
 })
 
 router.get('/category_detail', function (req, res, next) {
@@ -845,30 +658,7 @@ router.post('/goods_add', function (req, res, next) {
     })
 })
 
-router.get('/goods_list', function (req, res, next) { // user.js也有
-  var reqQuery = req.query;
-  var shopId = reqQuery.shop_id;
-  var categoryId = reqQuery.category_id;
-  var queryOptions = utils.filterEmptyValue({
-    shop_id: shopId,
-    category_id: categoryId
-  })
-  ShopGoods.find(queryOptions).populate([{
-    path: 'merchant_id'
-  }, {
-    path: 'shop_id'
-  }, {
-    path: 'category_id'
-  }])
-    .then(data => {
-      utils.success(res, '获取商品列表成功', data)
-    })
-    .catch(err => {
-      utils.error(res, '获取商品列表失败', err)
-    })
-})
-
-router.get('/goods_detail', function (req, res, next) { // user.js也有
+router.get('/goods_detail', function (req, res, next) { // user.js也有，但那里信息更多
   var _id = req.query._id
   if (!_id) {
     return utils.fail(res, 1)
@@ -964,10 +754,7 @@ router.post('/goods_edit', function (req, res, next) {
     detail_imgs: utils.changeQiniuFilename(detailImgs, goodsDetailDirname)
   })
     .then(() => {
-      res.json({
-        success: true,
-        msg: '修改商品成功'
-      })
+      utils.success(res, '修改商品成功')
       if (deleteImgs.length) { // 删除图片
         utils.resourceDeleteBatch({
           keys: deleteImgs,
@@ -997,56 +784,6 @@ router.post('/goods_edit', function (req, res, next) {
     })
     .catch(err => {
       utils.error(res, '修改商品失败', err)
-    })
-})
-
-router.post('/topic_add', function (req, res, next) { // user.js也有
-  var reqBody = req.body;
-  var title = reqBody.title;
-  var content = reqBody.content;
-  var authorId = reqBody.author_id;
-
-  if (!title || !content || !authorId || !(content instanceof Array)) {
-    return utils.fail(res, 1)
-  }
-
-  var moveTopicImgs = [];
-  var topicDirname = config.qiniuConfig.topicDirname;
-
-  for (var i = 0; i < content.length; i++) { // type: 1为文字，2为图片
-    if (content[i].type === 2) {
-      var tempMoveImgs = [];
-      moveTopicImgs = moveTopicImgs.concat(content[i].value);
-      content[i].value.forEach(function (item, index, arr) {
-        var filename = item.split('/')[item.split('/').length - 1]
-        tempMoveImgs.push(topicDirname + filename);
-        content[i].value = tempMoveImgs;
-      })
-    }
-  }
-
-  var topic = new Topic({
-    title: title,
-    content: content,
-    author_id: authorId
-  })
-
-  topic.save()
-    .then(() => {
-      utils.success(res, '帖子添加成功')
-
-      if (!moveTopicImgs.length) return;
-
-      utils.resourceMoveBatch({
-        srcKeys: moveTopicImgs,
-        destDirname: topicDirname,
-        error: function (err) {
-          utils.writeQiniuErrorLog('批量移动帖子图片失败，err: ' + err)
-        }
-      })
-    })
-    .catch(err => {
-      utils.error(res, '帖子添加失败', err)
     })
 })
 

@@ -1,4 +1,4 @@
-var config = require('./routers/clothes/config.js');
+var config = require('./config/clothes.config.js');
 var qiniu = require('qiniu');
 var fs = require('fs');
 
