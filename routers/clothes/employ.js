@@ -157,7 +157,7 @@ router.post('/merchant_add', function (req, res, next) { // 添加商家账号
   var address = reqBody.address;
   var desc = reqBody.desc;
   var code = reqBody.code;
-  var redisPrefix = config.redisPrefix.register
+  var redisPrefix = config.redisPrefix.merchantAdd
 
   if (!(/^1[34578]\d{9}$/.test(phone)) || !manager || !email || !name || !address || !code) {
     return utils.fail(res, 1)

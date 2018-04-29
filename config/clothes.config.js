@@ -16,7 +16,7 @@ module.exports = {
     smsType: 0 // Enum{0: 普通短信, 1: 营销短信}
   },
   qiniuConfig: {
-    default_bucket: 'wusuowei',
+    default_bucket: 'wusuowei', // test, master
     imgOrigin: 'http://img.wsweat.cn/',
     shopLogoDirname: 'clothes/shop/logo/',
     categoryIconDirname: 'clothes/category/icon/',
